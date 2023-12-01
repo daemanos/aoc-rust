@@ -1,5 +1,4 @@
-pub struct Soln;
-
+const RADIX: u32 = 10;
 const DIGITS: [(&str, u32); 18] = [
     ("one", 1), ("1", 1),
     ("two", 2), ("2", 2),
@@ -12,6 +11,7 @@ const DIGITS: [(&str, u32); 18] = [
     ("nine", 9), ("9", 9),
 ];
 
+pub struct Soln;
 impl crate::Soln for Soln {
     type Answer = u32;
 
@@ -19,15 +19,14 @@ impl crate::Soln for Soln {
         input.lines()
             .map(|line| {
                 let ds: Vec<u32> = line.trim().chars()
-                    .filter_map(|ch| ch.to_digit(10))
+                    .filter_map(|ch| ch.to_digit(RADIX))
                     .collect();
 
                 let d1 = ds.first().copied().unwrap_or(0);
                 let d2 = ds.last().copied().unwrap_or(d1);
 
-                10 * d1 + d2
-            })
-            .sum()
+                RADIX * d1 + d2
+            }).sum()
     }
 
     fn part2(input: &str) -> Self::Answer {
@@ -43,8 +42,8 @@ impl crate::Soln for Soln {
                     .map(|(_, d)| d);
 
                 match (d1, d2) {
-                    (Some(d), None) => 10*d + d,
-                    (Some(d1), Some(d2)) => 10*d1 + d2,
+                    (Some(d), None) => RADIX * d + d,
+                    (Some(d1), Some(d2)) => RADIX * d1 + d2,
                     _ => panic!("no digits found in {line}"),
                 }
             }).sum()
