@@ -4,6 +4,12 @@ use std::io::{self, Write};
 use std::error::Error;
 
 use clap::Parser;
+use reqwest::{blocking::Client, cookie::Jar, Url};
+
+const BASE_URL: &str = "https://adventofcode.com";
+const TOKEN_PATH: &str = ".token";
+
+const YEAR: u16 = 2023;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -50,7 +56,28 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let input = args.input.unwrap_or("input".to_string());
-    let input = fs::read_to_string(format!("input/day{:02}/{}", args.day, input))?;
+    let input_path = format!("input/day{:02}/{}", args.day, input);
+    let input = match fs::read_to_string(&input_path) {
+        Ok(str) => str,
+        Err(_) => {
+            let client = get_client()?;
+            let resp = client
+                .get(format!("https://adventofcode.com/{}/day/{}/{}", YEAR, args.day, input))
+                .send()?;
+            let input = if resp.status().is_success() {
+                resp.text()?
+            } else {
+                return Err(format!("failed to retrieve {input}: {:?}", resp.status()).into());
+            };
+
+            match File::create(&input_path).and_then(|mut file| writeln!(file, "{}", input)) {
+                Ok(_) => (),
+                Err(err) => eprintln!("warning: failed to save input: {err}"),
+            };
+
+            input
+        }
+    };
 
     let mut output: Box<dyn Write> = match args.output {
         None => Box::new(io::stdout()),
@@ -59,6 +86,20 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     solve(&input, args.part, &mut output)?;
     Ok(())
+}
+
+fn get_client() -> Result<Client, Box<dyn Error>> {
+    let token = fs::read_to_string(TOKEN_PATH)?;
+    let cookie = format!("session={}", token.trim());
+    let url: Url = BASE_URL.parse()?;
+
+    let jar = Jar::default();
+    jar.add_cookie_str(&cookie, &url);
+
+    let client = Client::builder()
+        .cookie_provider(jar.into())
+        .build()?;
+    Ok(client)
 }
 
 trait Soln {
