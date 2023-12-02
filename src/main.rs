@@ -3,18 +3,17 @@ use std::fs::{self, File};
 use std::io::{self, Write};
 use std::error::Error;
 
+use aoc_client::{AocClient, PuzzleDay, PuzzleYear, PuzzlePart};
 use clap::Parser;
-use reqwest::{blocking::Client, cookie::Jar, Url};
 
-const BASE_URL: &str = "https://adventofcode.com";
 const TOKEN_PATH: &str = ".token";
 
-const YEAR: u16 = 2023;
+const YEAR: PuzzleYear = 2023;
 
 #[derive(Parser, Debug)]
 struct Args {
-    day: u8,
-    part: u8,
+    day: PuzzleDay,
+    part: i64,
 
     #[arg(short, long)]
     input: Option<String>,
@@ -25,6 +24,14 @@ struct Args {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
+
+    let client = AocClient::builder()
+        .session_cookie_from_file(TOKEN_PATH)?
+        .year(YEAR)?
+        .day(args.day)?
+        .build()?;
+
+    let part: PuzzlePart = args.part.try_into()?;
 
     let solve = match args.day {
          1 => day01::Soln::solve,
@@ -52,7 +59,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         23 => day23::Soln::solve,
         24 => day24::Soln::solve,
         25 => day25::Soln::solve,
-        day => return Err(format!("illegal day: {day}").into()),
+         _ => panic!(),
     };
 
     let input = args.input.unwrap_or("input".to_string());
@@ -60,19 +67,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let input = match fs::read_to_string(&input_path) {
         Ok(str) => str,
         Err(_) => {
-            let client = get_client()?;
-            let resp = client
-                .get(format!("https://adventofcode.com/{}/day/{}/{}", YEAR, args.day, input))
-                .send()?;
-            let input = if resp.status().is_success() {
-                resp.text()?
-            } else {
-                return Err(format!("failed to retrieve {input}: {:?}", resp.status()).into());
-            };
+            let input = client.get_input()?;
 
-            match File::create(&input_path).and_then(|mut file| writeln!(file, "{}", input)) {
-                Ok(_) => (),
-                Err(err) => eprintln!("warning: failed to save input: {err}"),
+            let write = File::create(&input_path)
+                .and_then(|mut file| writeln!(file, "{}", input.trim()));
+            if let Err(err) = write {
+                eprintln!("warning: failed to save input: {err}");
             };
 
             input
@@ -84,22 +84,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some(path) => Box::new(File::create(&path)?),
     };
 
-    solve(&input, args.part, &mut output)?;
+    solve(&input, part, &mut output)?;
     Ok(())
-}
-
-fn get_client() -> Result<Client, Box<dyn Error>> {
-    let token = fs::read_to_string(TOKEN_PATH)?;
-    let cookie = format!("session={}", token.trim());
-    let url: Url = BASE_URL.parse()?;
-
-    let jar = Jar::default();
-    jar.add_cookie_str(&cookie, &url);
-
-    let client = Client::builder()
-        .cookie_provider(jar.into())
-        .build()?;
-    Ok(client)
 }
 
 trait Soln {
@@ -108,11 +94,10 @@ trait Soln {
     fn part1(input: &str) -> Self::Answer;
     fn part2(input: &str) -> Self::Answer;
 
-    fn solve(input: &str, part: u8, output: &mut dyn Write) -> Result<(), Box<dyn Error>> {
+    fn solve(input: &str, part: PuzzlePart, output: &mut dyn Write) -> Result<(), Box<dyn Error>> {
         let answer = match part {
-            1 => Self::part1(input),
-            2 => Self::part2(input),
-            _ => return Err(format!("illegal part: {part}").into()),
+            PuzzlePart::PartOne => Self::part1(input),
+            PuzzlePart::PartTwo => Self::part2(input),
         };
 
         writeln!(output, "{:?}", answer)?;
