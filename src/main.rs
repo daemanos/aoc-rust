@@ -55,10 +55,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     match args.command {
         Command::Run { day, part, input, output } => {
-            let input = get_input(input, day, &client)?;
+            let input = get_input(input, 2023, day, &client)?;
             let mut output = get_output(output)?;
 
-            aoc2023::solve(&input, day, part.try_into()?, &mut output)
+            let answer = aoc2023::solve(&input, 2023, day, part.try_into()?);
+            writeln!(output, "{answer}")?;
+            Ok(())
         },
         Command::Submit { .. } => {
             todo!()
@@ -66,9 +68,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn get_input(input: Option<String>, day: PuzzleDay, client: &AocClient) -> AocResult<String> {
+fn get_input(
+    input: Option<String>,
+    year: PuzzleYear,
+    day: PuzzleDay,
+    client: &AocClient,
+) -> AocResult<String> {
     let input = input.unwrap_or("input".to_string());
-    let input_path = format!("input/day{:02}/{}", day, input);
+    let input_path = format!("input/{}/day{:02}/{}", year, day, input);
 
     fs::read_to_string(&input_path).or_else(|_| {
         let input = client.get_input()?;
