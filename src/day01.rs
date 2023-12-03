@@ -1,3 +1,5 @@
+use crate::Soln;
+
 const RADIX: u32 = 10;
 const DIGITS: [(&str, u32); 18] = [
     ("one", 1), ("1", 1),
@@ -11,8 +13,8 @@ const DIGITS: [(&str, u32); 18] = [
     ("nine", 9), ("9", 9),
 ];
 
-pub struct Soln;
-impl crate::Soln for Soln {
+pub struct Puzzle;
+impl Soln for Puzzle {
     type Answer = u32;
 
     fn part1(input: &str) -> Self::Answer {
@@ -47,5 +49,35 @@ impl crate::Soln for Soln {
                     _ => panic!("no digits found in {line}"),
                 }
             }).sum()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn part1() {
+        let input =
+            "1abc2
+             pqr3stu8vwx
+             a1b2c3d4e5f
+             treb7uchet";
+
+        assert_eq!(142, Puzzle::part1(&input));
+    }
+
+    #[test]
+    fn part2() {
+        let input =
+            "two1nine
+             eightwothree
+             abcone2threexyz
+             xtwone3four
+             4nineeightseven2
+             zoneight234
+             7pqrstsixteen";
+
+        assert_eq!(281, Puzzle::part2(&input));
     }
 }

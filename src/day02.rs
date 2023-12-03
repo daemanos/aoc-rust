@@ -2,8 +2,10 @@ use std::cmp;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-pub struct Soln;
-impl crate::Soln for Soln {
+use crate::Soln;
+
+pub struct Puzzle;
+impl Soln for Puzzle {
     type Answer = u32;
 
     fn part1(input: &str) -> Self::Answer {
@@ -11,7 +13,7 @@ impl crate::Soln for Soln {
 
         input.lines()
             .filter_map(|line| {
-                let parts: Vec<&str> = line.split(':').collect();
+                let parts: Vec<&str> = line.trim().split(':').collect();
                 let id: u32 = parts[0].strip_prefix("Game ").unwrap().parse().unwrap();
 
                 for cubes in parts[1].trim().split(';') {
@@ -80,5 +82,27 @@ impl FromStr for Cubes {
         let green = colors.get("green").copied().unwrap_or(0);
         let blue = colors.get("blue").copied().unwrap_or(0);
         Ok(Cubes { red, green, blue })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    static INPUT: &str =
+        "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
+         Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue
+         Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
+         Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
+         Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
+
+    #[test]
+    fn part1() {
+        assert_eq!(8, Puzzle::part1(&INPUT));
+    }
+
+    #[test]
+    fn part2() {
+        assert_eq!(2286, Puzzle::part2(&INPUT));
     }
 }
