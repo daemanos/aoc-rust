@@ -2,60 +2,107 @@ use std::fs::{self, File};
 use std::io::{self, Write};
 use std::error::Error;
 
-use aoc_client::{AocClient, PuzzleDay, PuzzleYear, PuzzlePart};
-use clap::Parser;
+use aoc_client::{self, AocClient, AocResult, PuzzleDay, PuzzleYear};
+use clap::{Parser, Subcommand};
 
 use aoc2023;
 
 const TOKEN_PATH: &str = ".token";
 
-const YEAR: PuzzleYear = 2023;
-
 #[derive(Parser, Debug)]
+#[command(infer_subcommands = true)]
 struct Args {
-    day: PuzzleDay,
-    part: i64,
+    #[command(subcommand)]
+    command: Command,
 
-    #[arg(short, long)]
-    input: Option<String>,
+    /// Puzzle year [default: year of current or last AoC event]
+    #[arg(short, long, global = true)]
+    year: Option<PuzzleYear>,
+}
 
-    #[arg(short, long)]
-    output: Option<String>,
+#[derive(Subcommand, Debug)]
+enum Command {
+    #[command(visible_alias = "r")]
+    Run {
+        /// Puzzle day
+        day: PuzzleDay,
+
+        /// Puzzle part
+        part: i64,
+
+        /// Puzzle input within input/dayNN [default: input]
+        #[arg(short, long)]
+        input: Option<String>,
+
+        /// Output [default: stdout]
+        #[arg(short, long)]
+        output: Option<String>,
+    },
+
+    #[command(visible_alias = "s")]
+    Submit {
+        /// Puzzle day
+        day: PuzzleDay,
+
+        /// Puzzle part
+        part: i64,
+    },
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
+    let client = build_client(&args)?;
 
-    let client = AocClient::builder()
-        .session_cookie_from_file(TOKEN_PATH)?
-        .year(YEAR)?
-        .day(args.day)?
-        .build()?;
+    match args.command {
+        Command::Run { day, part, input, output } => {
+            let input = get_input(input, day, &client)?;
+            let mut output = get_output(output)?;
 
-    let part: PuzzlePart = args.part.try_into()?;
-
-    let input = args.input.unwrap_or("input".to_string());
-    let input_path = format!("input/day{:02}/{}", args.day, input);
-    let input = match fs::read_to_string(&input_path) {
-        Ok(str) => str,
-        Err(_) => {
-            let input = client.get_input()?;
-
-            let write = File::create(&input_path)
-                .and_then(|mut file| writeln!(file, "{}", input.trim()));
-            if let Err(err) = write {
-                eprintln!("warning: failed to save input: {err}");
-            };
-
-            input
-        }
-    };
-
-    let mut output: Box<dyn Write> = match args.output {
-        None => Box::new(io::stdout()),
-        Some(path) => Box::new(File::create(&path)?),
-    };
-
-    aoc2023::solve(&input, args.day, part, &mut output)
+            aoc2023::solve(&input, day, part.try_into()?, &mut output)
+        },
+        Command::Submit { .. } => {
+            todo!()
+        },
+    }
 }
 
+fn get_input(input: Option<String>, day: PuzzleDay, client: &AocClient) -> AocResult<String> {
+    let input = input.unwrap_or("input".to_string());
+    let input_path = format!("input/day{:02}/{}", day, input);
+
+    fs::read_to_string(&input_path).or_else(|_| {
+        let input = client.get_input()?;
+
+        let write = File::create(&input_path)
+            .and_then(|mut file| writeln!(file, "{}", input.trim()));
+        if let Err(err) = write {
+            eprintln!("warning: failed to save input: {err}");
+        };
+
+        Ok(input)
+    })
+}
+
+fn get_output(output: Option<String>) -> Result<Box<dyn Write>, io::Error> {
+    Ok(match output {
+        None => Box::new(io::stdout()),
+        Some(path) => Box::new(File::create(&path)?),
+    })
+}
+
+fn build_client(args: &Args) -> AocResult<AocClient> {
+    let mut builder = AocClient::builder();
+
+    match args.year {
+        Some(year) => builder.year(year)?,
+        None => builder.latest_event_year()?,
+    };
+
+    match args.command {
+        Command::Run { day, .. } | Command::Submit { day, .. } => builder.day(day)?,
+    };
+
+    builder
+        .session_cookie_from_file(TOKEN_PATH)?
+        .build()
+}
