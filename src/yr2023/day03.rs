@@ -1,8 +1,6 @@
 use std::collections::{HashSet, VecDeque};
 use std::fmt;
 
-use colored::*;
-
 use crate::Soln;
 
 pub struct Puzzle;
@@ -114,11 +112,12 @@ impl Grid {
         for row in 0..self.height {
             for col in 0..self.width {
                 let s = self.cells[row][col].to_string();
-                if self.is_part(row, col) {
-                    buf.push_str(&s.bold());
-                } else {
-                    buf.push_str(&s);
-                }
+                buf.push_str(&s);
+                //if self.is_part(row, col) {
+                //    buf.push_str(&s.bold());
+                //} else {
+                //    buf.push_str(&s);
+                //}
             }
 
             buf.push('\n');
