@@ -93,8 +93,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             writeln!(output, "{answer}")?;
             Ok(())
         },
-        Command::Submit { .. } => {
-            todo!()
+        Command::Submit { part } => {
+            let input = get_input(None, year, day, &client)?;
+
+            let answer = aoc2023::solve(&input, year, day, part.try_into()?);
+            Ok(client.submit_answer_and_show_outcome(part, answer)?)
         },
     }
 }
