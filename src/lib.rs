@@ -1,3 +1,5 @@
+mod utils;
+
 use std::fmt::Debug;
 
 use aoc_client::{PuzzleYear, PuzzleDay, PuzzlePart};
@@ -21,7 +23,7 @@ pub trait Soln {
 pub fn solve(input: &str, year: PuzzleYear, day: PuzzleDay, part: PuzzlePart) -> String {
     let doit = match year {
         2023 => yr2023::solve,
-         _ => panic!(),
+         _ => todo!(),
     };
 
     doit(input, day, part)
