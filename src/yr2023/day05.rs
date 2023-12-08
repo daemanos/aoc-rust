@@ -1,7 +1,7 @@
-use std::cmp;
 use std::str::Lines;
 
 use crate::Soln;
+use crate::utils::Interval;
 
 pub struct Puzzle;
 impl Soln for Puzzle {
@@ -38,7 +38,7 @@ impl Soln for Puzzle {
             .split(' ')
             .map(|n| n.parse().unwrap())
             .collect();
-        let seeds: Vec<Interval> = seeds.chunks(2)
+        let seeds: Vec<Interval<_>> = seeds.chunks(2)
             .map(|chunk| {
                 match chunk {
                     &[s, l] => Interval(s, s + l),
@@ -52,7 +52,7 @@ impl Soln for Puzzle {
             maps.push(map);
         }
 
-        let locs: Vec<Interval> = maps.iter()
+        let locs: Vec<Interval<_>> = maps.iter()
             .fold(seeds, |is, map| map.convert_intervals(is));
 
         locs.iter().min_by_key(|i| i.0).unwrap().0
@@ -61,25 +61,6 @@ impl Soln for Puzzle {
 
 #[derive(Debug)]
 struct Map(Vec<(u64, u64, u64)>);
-
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
-struct Interval(u64, u64);
-
-impl Interval {
-    fn merge(self, other: Self) -> Self {
-        let s = cmp::min(self.0, other.0);
-        let e = cmp::max(self.1, other.1);
-
-        Self(s, e)
-    }
-
-    fn overlaps(self, other: Self) -> bool {
-        let s = cmp::max(self.0, other.0);
-        let e = cmp::min(self.1, other.1);
-
-        s < e
-    }
-}
 
 impl Map {
     fn parse(lines: &mut Lines) -> Option<Self> {
@@ -114,7 +95,7 @@ impl Map {
         val
     }
 
-    fn convert_intervals(&self, is: Vec<Interval>) -> Vec<Interval> {
+    fn convert_intervals(&self, is: Vec<Interval<u64>>) -> Vec<Interval<u64>> {
         let mut res = Vec::new();
 
         let mut stack = is.clone();

@@ -1,3 +1,5 @@
+#![feature(pattern)]
+
 pub mod utils;
 
 use std::fmt::Debug;
