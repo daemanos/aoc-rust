@@ -6,7 +6,7 @@ use std::error::Error;
 use std::fs::{self, File};
 use std::io::{self, Write};
 
-use aoc2023;
+use aoc_solns;
 
 const DECEMBER: u32 = 12;
 const FIRST_PUZZLE_DAY: PuzzleDay = 1;
@@ -89,14 +89,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             let input = get_input(input, year, day, &client)?;
             let mut output = get_output(output)?;
 
-            let answer = aoc2023::solve(&input, year, day, part.try_into()?);
+            let answer = aoc_solns::solve(&input, year, day, part.try_into()?);
             writeln!(output, "{answer}")?;
             Ok(())
         },
         Command::Submit { part } => {
             let input = get_input(None, year, day, &client)?;
 
-            let answer = aoc2023::solve(&input, year, day, part.try_into()?);
+            let answer = aoc_solns::solve(&input, year, day, part.try_into()?);
             Ok(client.submit_answer_and_show_outcome(part, answer)?)
         },
     }

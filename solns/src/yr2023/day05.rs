@@ -1,7 +1,7 @@
 use std::str::Lines;
 
 use crate::Soln;
-use crate::utils::Interval;
+use utils::Interval;
 
 pub struct Puzzle;
 impl Soln for Puzzle {

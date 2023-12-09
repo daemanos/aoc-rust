@@ -1,9 +1,4 @@
-#![feature(pattern)]
-
-pub mod utils;
-
 use std::fmt::Debug;
-
 use aoc_client::{PuzzleYear, PuzzleDay, PuzzlePart};
 
 pub trait Soln {

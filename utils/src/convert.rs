@@ -20,7 +20,7 @@ where T: TryFrom<char> {
 ///
 /// # Examples
 /// ```
-/// # use aoc2023::utils::convert::words;
+/// # use utils::convert::words;
 /// let v: Vec<u32> = words("1 23 456").collect();
 /// assert_eq!(vec![1, 23, 456], v);
 /// ```
@@ -35,7 +35,7 @@ where T: FromStr,
 ///
 /// # Examples
 /// ```
-/// # use aoc2023::utils::convert::delimited;
+/// # use utils::convert::delimited;
 /// let v: Vec<u32> = delimited("1:23:456", ':').collect();
 /// assert_eq!(vec![1, 23, 456], v);
 /// ```

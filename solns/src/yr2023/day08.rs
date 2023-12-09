@@ -1,9 +1,9 @@
 use std::str::FromStr;
-use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::collections::HashMap;
 use std::cmp::Ordering;
 
 use crate::Soln;
-use crate::utils::math;
+use utils::math;
 
 pub struct Puzzle;
 impl Soln for Puzzle {

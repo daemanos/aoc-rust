@@ -1,0 +1,9 @@
+[package]
+name = "utils"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aoc-client = "0.2.0"
+num-traits = "0.2.17"
+utils-derive = { version = "0.1.0", path = "../utils-derive" }
