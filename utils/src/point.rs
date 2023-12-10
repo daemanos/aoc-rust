@@ -3,15 +3,17 @@ use std::cmp::Ordering;
 
 use num_traits::{NumCast, Float, PrimInt, Signed};
 
-static NEIGHBORS: [Direction; 8] = [
+pub static NEIGHBORS: [Direction; 8] = [
     Direction::NW, Direction::N, Direction::NE,
     Direction::W,                Direction::E,
     Direction::SW, Direction::S, Direction::SE,
 ];
 
-static ORTHO_NEIGHBORS: [Direction; 4] = [Direction::N, Direction::E, Direction::S, Direction::W];
+pub static ORTHO_NEIGHBORS: [Direction; 4] = [
+    Direction::N, Direction::E, Direction::S, Direction::W
+];
 
-/// A general-purpose lattice point
+/// A general-purpose lattice point. Order: (row, col)
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Point<T>(pub T, pub T);
 
@@ -119,6 +121,21 @@ pub enum Direction {
     SE,
 }
 
+impl Direction {
+    pub fn opp(&self) -> Self {
+        match self {
+            Self::NW => Self::SE,
+            Self::N  => Self::S,
+            Self::NE => Self::SW,
+            Self::W  => Self::E,
+            Self::SE => Self::NW,
+            Self::S  => Self::N,
+            Self::SW => Self::NE,
+            Self::E  => Self::W,
+        }
+    }
+}
+
 impl<T> Add<Direction> for Point<T>
 where T: PrimInt {
     type Output = Self;
@@ -126,12 +143,12 @@ where T: PrimInt {
         let one = T::one();
         match rhs {
             Direction::NW => Self(self.0 - one, self.1 - one),
-            Direction::N  => Self(self.0,       self.1 - one),
-            Direction::NE => Self(self.0 + one, self.1 - one),
-            Direction::W  => Self(self.0 - one, self.1      ),
-            Direction::E  => Self(self.0 + one, self.1      ),
-            Direction::SW => Self(self.0 - one, self.1 + one),
-            Direction::S  => Self(self.0,       self.1 + one),
+            Direction::W  => Self(self.0,       self.1 - one),
+            Direction::NE => Self(self.0 - one, self.1 + one),
+            Direction::N  => Self(self.0 - one, self.1      ),
+            Direction::S  => Self(self.0 + one, self.1      ),
+            Direction::SW => Self(self.0 + one, self.1 - one),
+            Direction::E  => Self(self.0,       self.1 + one),
             Direction::SE => Self(self.0 + one, self.1 + one),
         }
     }

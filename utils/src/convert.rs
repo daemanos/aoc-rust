@@ -16,7 +16,8 @@ where T: TryFrom<char> {
     }
 }
 
-/// Splits a string into words separated by whitespace and converts each word to the given type.
+/// Splits a string into words separated by whitespace and converts each word
+/// to the given type.
 ///
 /// # Examples
 /// ```
@@ -30,8 +31,8 @@ where T: FromStr,
     s.split_whitespace().filter_map(|word| word.parse().ok())
 }
 
-/// Splits a string into parts delimited by the given pattern and converts each part to the given
-/// type.
+/// Splits a string into parts delimited by the given pattern and converts each
+/// part to the given type.
 ///
 /// # Examples
 /// ```

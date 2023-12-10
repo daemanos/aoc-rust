@@ -1,82 +1,108 @@
+use std::iter;
+use std::str::{Chars, FromStr};
+use std::ops::Index;
+
 use super::{PeekFrom, Point};
 
-use std::str::{Chars, FromStr};
+pub type IdxPoint = Point<usize>;
 
-pub trait Grid<T> {
+pub trait Grid<T> : Index<IdxPoint, Output = T> {
     fn dim(&self) -> (usize, usize);
-    fn get(&self, point: Point<usize>) -> Option<&T>;
 
-    fn neighbors(&self, point: Point<usize>) -> Option<Vec<&T>> {
+    fn in_bounds(&self, point: IdxPoint) -> bool {
         let (w, h) = self.dim();
-        if point.0 >= h || point.1 >= w {
-            return None;
+        point.0 > 0 && point.0 <= h && point.1 > 0 && point.1 <= w
+    }
+
+    fn get(&self, point: IdxPoint) -> Option<&T> {
+        if self.in_bounds(point) {
+            Some(&self[point])
+        } else {
+            None
         }
+    }
 
-        Some(match point {
-            // corners
-            Point(0, 0) => vec![
-                self.get(Point(0, 1)).unwrap(),
-                self.get(Point(1, 0)).unwrap(),
-                self.get(Point(1, 1)).unwrap(),
-            ],
-            Point(0, col) if col == w - 1 => vec![
-                self.get(Point(0, w - 2)).unwrap(),
-                self.get(Point(1, w - 1)).unwrap(),
-                self.get(Point(1, w - 2)).unwrap(),
-            ],
-            Point(row, 0) if row == h - 1 => vec![
-                self.get(Point(h - 2, 0)).unwrap(),
-                self.get(Point(h - 1, 1)).unwrap(),
-                self.get(Point(h - 2, 1)).unwrap(),
-            ],
-            Point(row, col) if row == h - 1 && col == w - 1 => vec![
-                self.get(Point(h - 1, w - 2)).unwrap(),
-                self.get(Point(h - 2, w - 1)).unwrap(),
-                self.get(Point(h - 2, w - 2)).unwrap(),
-            ],
+    fn ortho_neighbors(&self, point: IdxPoint) -> Vec<&T> {
+        point.ortho_neighbors()
+            .filter_map(|p| self.get(p))
+            .collect()
+    }
 
-            // edges
-            Point(0, col) => vec![
-                self.get(Point(0, col - 1)).unwrap(),
-                self.get(Point(0, col + 1)).unwrap(),
-                self.get(Point(1, col - 1)).unwrap(),
-                self.get(Point(1, col    )).unwrap(),
-                self.get(Point(1, col + 1)).unwrap(),
-            ],
-            Point(row, 0) => vec![
-                self.get(Point(row - 1, 0)).unwrap(),
-                self.get(Point(row + 1, 0)).unwrap(),
-                self.get(Point(row - 1, 1)).unwrap(),
-                self.get(Point(row,     1)).unwrap(),
-                self.get(Point(row + 1, 1)).unwrap(),
-            ],
-            Point(row, col) if row == h - 1 => vec![
-                self.get(Point(row,     col - 1)).unwrap(),
-                self.get(Point(row - 1, col - 1)).unwrap(),
-                self.get(Point(row - 1, col    )).unwrap(),
-                self.get(Point(row - 1, col + 1)).unwrap(),
-                self.get(Point(row,     col + 1)).unwrap(),
-            ],
-            Point(row, col) if col == w - 1 => vec![
-                self.get(Point(row - 1, col    )).unwrap(),
-                self.get(Point(row - 1, col - 1)).unwrap(),
-                self.get(Point(row,     col - 1)).unwrap(),
-                self.get(Point(row + 1, col - 1)).unwrap(),
-                self.get(Point(row + 1, col    )).unwrap(),
-            ],
+    fn neighbors(&self, point: IdxPoint) -> Vec<&T> {
+        point.neighbors()
+            .filter_map(|p| self.get(p))
+            .collect()
 
-            // interior
-            Point(row, col) => vec![
-                self.get(Point(row - 1, col - 1)).unwrap(),
-                self.get(Point(row - 1, col    )).unwrap(),
-                self.get(Point(row - 1, col + 1)).unwrap(),
-                self.get(Point(row    , col - 1)).unwrap(),
-                self.get(Point(row    , col + 1)).unwrap(),
-                self.get(Point(row + 1, col - 1)).unwrap(),
-                self.get(Point(row + 1, col    )).unwrap(),
-                self.get(Point(row + 1, col + 1)).unwrap(),
-            ],
-        })
+        //let (w, h) = self.dim();
+        //if point.0 >= h || point.1 >= w {
+        //    return None;
+        //}
+
+        //Some(match point {
+        //    // corners
+        //    Point(0, 0) => vec![
+        //        &self[Point(0, 1)],
+        //        &self[Point(1, 0)],
+        //        &self[Point(1, 1)],
+        //    ],
+        //    Point(0, col) if col == w - 1 => vec![
+        //        &self[Point(0, w - 2)],
+        //        &self[Point(1, w - 1)],
+        //        &self[Point(1, w - 2)],
+        //    ],
+        //    Point(row, 0) if row == h - 1 => vec![
+        //        &self[Point(h - 2, 0)],
+        //        &self[Point(h - 1, 1)],
+        //        &self[Point(h - 2, 1)],
+        //    ],
+        //    Point(row, col) if row == h - 1 && col == w - 1 => vec![
+        //        &self[Point(h - 1, w - 2)],
+        //        &self[Point(h - 2, w - 1)],
+        //        &self[Point(h - 2, w - 2)],
+        //    ],
+
+        //    // edges
+        //    Point(0, col) => vec![
+        //        &self[Point(0, col - 1)],
+        //        &self[Point(0, col + 1)],
+        //        &self[Point(1, col - 1)],
+        //        &self[Point(1, col    )],
+        //        &self[Point(1, col + 1)],
+        //    ],
+        //    Point(row, 0) => vec![
+        //        &self[Point(row - 1, 0)],
+        //        &self[Point(row + 1, 0)],
+        //        &self[Point(row - 1, 1)],
+        //        &self[Point(row,     1)],
+        //        &self[Point(row + 1, 1)],
+        //    ],
+        //    Point(row, col) if row == h - 1 => vec![
+        //        &self[Point(row,     col - 1)],
+        //        &self[Point(row - 1, col - 1)],
+        //        &self[Point(row - 1, col    )],
+        //        &self[Point(row - 1, col + 1)],
+        //        &self[Point(row,     col + 1)],
+        //    ],
+        //    Point(row, col) if col == w - 1 => vec![
+        //        &self[Point(row - 1, col    )],
+        //        &self[Point(row - 1, col - 1)],
+        //        &self[Point(row,     col - 1)],
+        //        &self[Point(row + 1, col - 1)],
+        //        &self[Point(row + 1, col    )],
+        //    ],
+
+        //    // interior
+        //    Point(row, col) => vec![
+        //        &self[Point(row - 1, col - 1)],
+        //        &self[Point(row - 1, col    )],
+        //        &self[Point(row - 1, col + 1)],
+        //        &self[Point(row    , col - 1)],
+        //        &self[Point(row    , col + 1)],
+        //        &self[Point(row + 1, col - 1)],
+        //        &self[Point(row + 1, col    )],
+        //        &self[Point(row + 1, col + 1)],
+        //    ],
+        //})
     }
 }
 
@@ -120,15 +146,25 @@ impl<T> Vec2D<T> {
             panic!("argument to push_col must have the same length as the grid height");
         }
     }
+
+    //fn iter(&self) -> impl Iterator<Item = &T> {
+    //    self.cells.iter()
+    //        .map(|row| row.iter())
+    //        .reduce(|acc, e| acc.chain(e).into_iter())
+    //        .unwrap()
+    //}
+}
+
+impl<T> Index<IdxPoint> for Vec2D<T> {
+    type Output = T;
+    fn index(&self, index: IdxPoint) -> &Self::Output {
+        &self.cells[index.0 - 1][index.1 - 1]
+    }
 }
 
 impl<T> Grid<T> for Vec2D<T> {
     fn dim(&self) -> (usize, usize) {
         (self.width, self.height)
-    }
-
-    fn get(&self, point: Point<usize>) -> Option<&T> {
-        self.cells.get(point.0)?.get(point.1)
     }
 }
 
@@ -194,9 +230,9 @@ mod tests {
         assert_eq!(3, width);
         assert_eq!(3, height);
 
-        for row in 0..height {
-            for col in 0..width {
-                let cell = Cell((3*row + col + 1).try_into().unwrap());
+        for row in 1..=height {
+            for col in 1..=width {
+                let cell = Cell((3*(row-1) + col).try_into().unwrap());
                 let point = Point(row, col);
                 assert_eq!(Some(cell), grid.get(point).copied());
             }
