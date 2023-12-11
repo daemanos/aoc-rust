@@ -1,5 +1,5 @@
-use std::str::{Chars, FromStr};
 use std::ops::{Index, Deref};
+use std::str::{Chars, FromStr};
 
 use super::{PeekFrom, Point};
 
@@ -115,7 +115,7 @@ pub struct Vec2D<T> {
 }
 
 impl<T> Vec2D<T> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             cells: vec![],
             width: 0,
@@ -123,7 +123,21 @@ impl<T> Vec2D<T> {
         }
     }
 
-    fn push_row(&mut self, row: Vec<T>) {
+    pub fn from_rows<I: Iterator<Item = Vec<T>>>(rows: I) -> Self {
+        rows.fold(Self::new(), |mut acc, row| {
+            acc.push_row(row);
+            acc
+        })
+    }
+
+    pub fn from_cols<I: Iterator<Item = Vec<T>>>(cols: I) -> Self {
+        cols.fold(Self::new(), |mut acc, col| {
+            acc.push_col(col);
+            acc
+        })
+    }
+
+    pub fn push_row(&mut self, row: Vec<T>) {
         if row.len() == self.width {
             self.cells.push(row);
             self.height += 1;
@@ -132,7 +146,7 @@ impl<T> Vec2D<T> {
         }
     }
 
-    fn push_col(&mut self, col: Vec<T>) {
+    pub fn push_col(&mut self, col: Vec<T>) {
         if col.len() == self.height {
             self.cells.iter_mut().zip(col)
                 .for_each(|(row, cell)| row.push(cell));
@@ -142,7 +156,7 @@ impl<T> Vec2D<T> {
         }
     }
 
-    fn row(&self, row: usize) -> Option<&[T]> {
+    pub fn row(&self, row: usize) -> Option<&[T]> {
         if row > 0 && row <= self.height {
             Some(self.cells[row - 1].as_slice())
         } else {
@@ -150,7 +164,7 @@ impl<T> Vec2D<T> {
         }
     }
 
-    fn col(&self, col: usize) -> Option<Vec<&T>> {
+    pub fn col(&self, col: usize) -> Option<Vec<&T>> {
         if col > 0 && col <= self.width {
             Some(self.cells.iter().map(|row| &row[col - 1]).collect())
         } else {
@@ -158,11 +172,11 @@ impl<T> Vec2D<T> {
         }
     }
 
-    fn rows(&self) -> impl Iterator<Item = &[T]> {
+    pub fn rows(&self) -> impl Iterator<Item = &[T]> {
         self.cells.iter().map(Vec::as_slice)
     }
 
-    fn cols(&self) -> impl Iterator<Item = Vec<&T>> {
+    pub fn cols(&self) -> impl Iterator<Item = Vec<&T>> {
         (0..self.width)
             .map(|col| self.cells.iter()
                 .map(|row| &row[col]).collect())
