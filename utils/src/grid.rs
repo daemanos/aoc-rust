@@ -1,16 +1,23 @@
-use std::iter;
 use std::str::{Chars, FromStr};
-use std::ops::Index;
+use std::ops::{Index, Deref};
 
 use super::{PeekFrom, Point};
 
 pub type IdxPoint = Point<usize>;
 
+pub struct Dim(pub usize, pub usize);
+
+/// A two-dimensional grid structure with 1-based indexing.
+///
+/// # Note on indexing
+///
+/// Grid types use 1-based indexing so that the notion of a "neighbor" can
+/// be naturally implemented with unsigned indices.
 pub trait Grid<T> : Index<IdxPoint, Output = T> {
-    fn dim(&self) -> (usize, usize);
+    fn dim(&self) -> Dim;
 
     fn in_bounds(&self, point: IdxPoint) -> bool {
-        let (w, h) = self.dim();
+        let Dim(h, w) = self.dim();
         point.0 > 0 && point.0 <= h && point.1 > 0 && point.1 <= w
     }
 
@@ -20,6 +27,10 @@ pub trait Grid<T> : Index<IdxPoint, Output = T> {
         } else {
             None
         }
+    }
+
+    fn iter(&self) -> Iter<T> where Self: Sized {
+        Iter::new(self)
     }
 
     fn ortho_neighbors(&self, point: IdxPoint) -> Vec<&T> {
@@ -32,77 +43,61 @@ pub trait Grid<T> : Index<IdxPoint, Output = T> {
         point.neighbors()
             .filter_map(|p| self.get(p))
             .collect()
+    }
+}
 
-        //let (w, h) = self.dim();
-        //if point.0 >= h || point.1 >= w {
-        //    return None;
-        //}
+pub struct Iter<'a, T> {
+    curr: IdxPoint,
+    dim: Dim,
+    grid: &'a dyn Grid<T>,
+}
 
-        //Some(match point {
-        //    // corners
-        //    Point(0, 0) => vec![
-        //        &self[Point(0, 1)],
-        //        &self[Point(1, 0)],
-        //        &self[Point(1, 1)],
-        //    ],
-        //    Point(0, col) if col == w - 1 => vec![
-        //        &self[Point(0, w - 2)],
-        //        &self[Point(1, w - 1)],
-        //        &self[Point(1, w - 2)],
-        //    ],
-        //    Point(row, 0) if row == h - 1 => vec![
-        //        &self[Point(h - 2, 0)],
-        //        &self[Point(h - 1, 1)],
-        //        &self[Point(h - 2, 1)],
-        //    ],
-        //    Point(row, col) if row == h - 1 && col == w - 1 => vec![
-        //        &self[Point(h - 1, w - 2)],
-        //        &self[Point(h - 2, w - 1)],
-        //        &self[Point(h - 2, w - 2)],
-        //    ],
+impl<'a, T> Iter<'a, T> {
+    fn new(grid: &'a dyn Grid<T>) -> Self {
+        let curr = Point(1, 1);
+        let dim = grid.dim();
 
-        //    // edges
-        //    Point(0, col) => vec![
-        //        &self[Point(0, col - 1)],
-        //        &self[Point(0, col + 1)],
-        //        &self[Point(1, col - 1)],
-        //        &self[Point(1, col    )],
-        //        &self[Point(1, col + 1)],
-        //    ],
-        //    Point(row, 0) => vec![
-        //        &self[Point(row - 1, 0)],
-        //        &self[Point(row + 1, 0)],
-        //        &self[Point(row - 1, 1)],
-        //        &self[Point(row,     1)],
-        //        &self[Point(row + 1, 1)],
-        //    ],
-        //    Point(row, col) if row == h - 1 => vec![
-        //        &self[Point(row,     col - 1)],
-        //        &self[Point(row - 1, col - 1)],
-        //        &self[Point(row - 1, col    )],
-        //        &self[Point(row - 1, col + 1)],
-        //        &self[Point(row,     col + 1)],
-        //    ],
-        //    Point(row, col) if col == w - 1 => vec![
-        //        &self[Point(row - 1, col    )],
-        //        &self[Point(row - 1, col - 1)],
-        //        &self[Point(row,     col - 1)],
-        //        &self[Point(row + 1, col - 1)],
-        //        &self[Point(row + 1, col    )],
-        //    ],
+        Self { curr, dim, grid }
+    }
+}
 
-        //    // interior
-        //    Point(row, col) => vec![
-        //        &self[Point(row - 1, col - 1)],
-        //        &self[Point(row - 1, col    )],
-        //        &self[Point(row - 1, col + 1)],
-        //        &self[Point(row    , col - 1)],
-        //        &self[Point(row    , col + 1)],
-        //        &self[Point(row + 1, col - 1)],
-        //        &self[Point(row + 1, col    )],
-        //        &self[Point(row + 1, col + 1)],
-        //    ],
-        //})
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        let Point(row, col) = self.curr;
+        let Dim(h, w) = self.dim;
+
+        if row > h && col > w {
+            None
+        } else {
+            let res = &self.grid[self.curr];
+
+            self.curr = if col == w {
+                Point(row + 1, 1)
+            } else {
+                Point(row, col + 1)
+            };
+
+            Some(res)
+        }
+    }
+}
+
+pub struct Cell<'a, T> {
+    point: IdxPoint,
+    grid : &'a dyn Grid<T>,
+}
+
+//impl<'a, T> Cell<'a, T> {
+//    fn neighbors(&self) -> Vec<Self> {
+//
+//    }
+//}
+
+impl<'a, T> Deref for Cell<'a, T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.grid[self.point]
     }
 }
 
@@ -147,12 +142,31 @@ impl<T> Vec2D<T> {
         }
     }
 
-    //fn iter(&self) -> impl Iterator<Item = &T> {
-    //    self.cells.iter()
-    //        .map(|row| row.iter())
-    //        .reduce(|acc, e| acc.chain(e).into_iter())
-    //        .unwrap()
-    //}
+    fn row(&self, row: usize) -> Option<&[T]> {
+        if row > 0 && row <= self.height {
+            Some(self.cells[row - 1].as_slice())
+        } else {
+            None
+        }
+    }
+
+    fn col(&self, col: usize) -> Option<Vec<&T>> {
+        if col > 0 && col <= self.width {
+            Some(self.cells.iter().map(|row| &row[col - 1]).collect())
+        } else {
+            None
+        }
+    }
+
+    fn rows(&self) -> impl Iterator<Item = &[T]> {
+        self.cells.iter().map(Vec::as_slice)
+    }
+
+    fn cols(&self) -> impl Iterator<Item = Vec<&T>> {
+        (0..self.width)
+            .map(|col| self.cells.iter()
+                .map(|row| &row[col]).collect())
+    }
 }
 
 impl<T> Index<IdxPoint> for Vec2D<T> {
@@ -163,8 +177,8 @@ impl<T> Index<IdxPoint> for Vec2D<T> {
 }
 
 impl<T> Grid<T> for Vec2D<T> {
-    fn dim(&self) -> (usize, usize) {
-        (self.width, self.height)
+    fn dim(&self) -> Dim {
+        Dim(self.height, self.width)
     }
 }
 

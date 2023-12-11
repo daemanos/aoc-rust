@@ -2,7 +2,7 @@ use crate::Soln;
 
 use std::cmp;
 use std::collections::{VecDeque, HashSet};
-use utils::{point, grid::IdxPoint, Grid, Vec2D, Direction, Point};
+use utils::{point, grid::{IdxPoint, Dim}, Grid, Vec2D, Direction, Point};
 
 pub struct Puzzle;
 impl Soln for Puzzle {
@@ -46,7 +46,7 @@ impl Soln for Puzzle {
 
     fn part2(input: &str) -> Self::Answer {
         let (grid, start) = parse_input(input);
-        let (w, h) = grid.dim();
+        let Dim(h, w) = grid.dim();
 
         let mut pos = start;
 
@@ -117,7 +117,7 @@ impl Soln for Puzzle {
 
 fn parse_input(input: &str) -> (Vec2D<Cell>, IdxPoint) {
     let grid: Vec2D<Cell> = input.parse().unwrap();
-    let (w, h) = grid.dim();
+    let Dim(h, w) = grid.dim();
 
     let mut start = Point(0, 0);
     'row: for row in 1..=h {
@@ -131,28 +131,6 @@ fn parse_input(input: &str) -> (Vec2D<Cell>, IdxPoint) {
     }
 
     (grid, start)
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-enum Turn {
-    Right,
-    Left,
-}
-
-impl Turn {
-    fn from(dir1: Direction, dir2: Direction) -> Option<Self> {
-        match (dir1, dir2) {
-            (Direction::N, Direction::W) => Some(Turn::Left),
-            (Direction::N, Direction::E) => Some(Turn::Right),
-            (Direction::S, Direction::E) => Some(Turn::Left),
-            (Direction::S, Direction::W) => Some(Turn::Right),
-            (Direction::E, Direction::N) => Some(Turn::Left),
-            (Direction::E, Direction::S) => Some(Turn::Right),
-            (Direction::W, Direction::S) => Some(Turn::Left),
-            (Direction::W, Direction::N) => Some(Turn::Right),
-            _ => None,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -182,22 +160,7 @@ impl Cell {
         }
     }
 
-    fn horizontal(&self) -> bool {
-        match self {
-            Pipe(Direction::E, Direction::W) => true,
-            Pipe(Direction::W, Direction::E) => true,
-            _ => false,
-        }
-    }
-
-    fn vertical(&self) -> bool {
-        match self {
-            Pipe(Direction::N, Direction::S) => true,
-            Pipe(Direction::S, Direction::N) => true,
-            _ => false,
-        }
-    }
-
+    #[allow(unused)]
     fn to_char(self) -> char {
         match self {
             Pipe(Direction::N, Direction::S) => '║',
