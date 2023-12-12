@@ -17,6 +17,43 @@ pub use point::{Point, Direction};
 pub use utils_derive::FromWords;
 
 
+pub trait IterUtils<'a, T: 'a> {
+    fn combos(&'a self) -> Combos<T>;
+    fn pairs(&'a self) -> impl Iterator<Item = (&'a T, &'a T)>;
+}
+
+// TODO blanket implementation for Into<&[T]>
+
+impl<'a, T: 'a> IterUtils<'a, T> for &'a [T] {
+    fn combos(&'a self) -> Combos<T> {
+        Combos { xs: self, n: self.len(), i: 0, j: 0 }
+    }
+
+    fn pairs(&'a self) -> impl Iterator<Item = (&'a T, &'a T)> {
+        self.windows(2)
+            .map(|w| match &w {
+                &[x1, x2] => (x1, x2),
+                _ => panic!(),
+            })
+    }
+}
+
+impl<'a, T: 'a> IterUtils<'a, T> for Vec<T> {
+    fn combos(&'a self) -> Combos<T> {
+        let xs = self.as_slice();
+        Combos { xs, n: self.len(), i: 0, j: 0 }
+    }
+
+    fn pairs(&'a self) -> impl Iterator<Item = (&'a T, &'a T)> {
+        let xs = self.as_slice();
+        xs.windows(2)
+            .map(|w| match &w {
+                &[x1, x2] => (x1, x2),
+                _ => panic!(),
+            })
+    }
+}
+
 pub struct Combos<'a, T> {
     xs: &'a [T],
     i: usize,
@@ -41,9 +78,4 @@ impl<'a, T> Iterator for Combos<'a, T> {
             Some(res)
         }
     }
-}
-
-pub fn combos<T>(xs: &[T]) -> Combos<T> {
-    let n = xs.len();
-    Combos { xs, n, i: 0, j: 0 }
 }

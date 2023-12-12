@@ -238,7 +238,6 @@ where T: for<'a> PeekFrom<Chars<'a>>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::iter::Peekable;
 
     #[derive(Debug, PartialEq, Eq, Copy, Clone)]
     struct Cell(u32);
@@ -254,7 +253,7 @@ mod tests {
         let s = "123\n456\n789";
         let grid: Vec2D<Cell> = s.parse().unwrap();
 
-        let (width, height) = grid.dim();
+        let Dim(width, height) = grid.dim();
         assert_eq!(3, width);
         assert_eq!(3, height);
 

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::Soln;
-use utils::{self, Point};
+use utils::{IterUtils, Point};
 
 type Num = i64;
 
@@ -50,7 +50,7 @@ fn solve(input: &str, expansion: Num) -> Num {
     }
 
     // calculate pairwise distances
-    utils::combos(&galaxies)
+    galaxies.combos()
         .map(|(g1, g2)| (g2.0 - g1.0).abs() + (g2.1 - g1.1).abs())
         .sum()
 }
@@ -98,12 +98,12 @@ mod tests {
     #[test]
     #[ignore]
     fn part1() {
-        assert_eq!((), Puzzle::part1(""));
+        //assert_eq!((), Puzzle::part1(""));
     }
 
     #[test]
     #[ignore]
     fn part2() {
-        assert_eq!((), Puzzle::part2(""));
+        //assert_eq!((), Puzzle::part2(""));
     }
 }

@@ -157,6 +157,7 @@ where T: PrimInt {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
 
     #[test]
     fn abs() {
@@ -189,12 +190,12 @@ mod tests {
     fn neighbors() {
         let origin = Point(0_i32, 0_i32);
 
-        let expected = vec![
+        let expected = HashSet::from([
             Point(-1, -1), Point(0, -1), Point(1, -1),
             Point(-1,  0),               Point(1,  0),
             Point(-1,  1), Point(0,  1), Point(1,  1),
-        ];
-        let actual: Vec<_> = origin.neighbors().collect();
+        ]);
+        let actual: HashSet<_> = origin.neighbors().collect();
 
         assert_eq!(expected, actual);
     }
@@ -203,8 +204,10 @@ mod tests {
     fn ortho_neighbors() {
         let origin = Point(0_i32, 0_i32);
 
-        let expected = vec![Point(0, -1), Point(1, 0), Point(0, 1), Point(-1, 0)];
-        let actual: Vec<_> = origin.ortho_neighbors().collect();
+        let expected = HashSet::from([
+            Point(0, -1), Point(1, 0), Point(0, 1), Point(-1, 0)
+        ]);
+        let actual: HashSet<_> = origin.ortho_neighbors().collect();
 
         assert_eq!(expected, actual);
     }

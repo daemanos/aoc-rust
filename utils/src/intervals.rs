@@ -1,6 +1,6 @@
 use num_traits::PrimInt;
-use std::borrow::{Borrow, BorrowMut};
 use std::cmp;
+use std::collections::BTreeMap;
 use std::iter::Iterator;
 use std::ops::Range;
 
@@ -53,96 +53,136 @@ where T: PrimInt
     }
 }
 
-pub struct IntervalTree<T: PrimInt>(Option<Node<T>>);
+pub struct IntervalTree<T: PrimInt>(BTreeMap<T, Interval<T>>);
 
-pub struct Iter<'a, T>
-where T: 'a + PrimInt
-{
-    stack: Vec<&'a Node<T>>,
-    curr: Option<&'a Node<T>>,
-}
-
-impl<'a, T> Iterator for Iter<'a, T>
-where T: PrimInt
-{
-    type Item = &'a Interval<T>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(curr) = &self.curr {
-            self.stack.push(curr);
-            self.curr = curr.left.as_ref().map(Box::borrow);
-        }
-
-        self.stack.pop().map(|curr| {
-            self.curr = curr.right.as_ref().map(Box::borrow);
-            &curr.value
-        })
-    }
-}
+//pub struct Iter<'a, T>
+//where T: 'a + PrimInt
+//{
+//    stack: Vec<&'a Node<T>>,
+//    curr: Option<&'a Node<T>>,
+//}
+//
+//impl<'a, T> Iterator for Iter<'a, T>
+//where T: PrimInt
+//{
+//    type Item = &'a Interval<T>;
+//
+//    fn next(&mut self) -> Option<Self::Item> {
+//        while let Some(curr) = &self.curr {
+//            self.stack.push(curr);
+//            self.curr = curr.left.as_ref().map(Box::borrow);
+//        }
+//
+//        self.stack.pop().map(|curr| {
+//            self.curr = curr.right.as_ref().map(Box::borrow);
+//            &curr.value
+//        })
+//    }
+//}
 
 impl<T> IntervalTree<T>
 where T: PrimInt
 {
     pub fn new() -> Self {
-        Self(None)
+        Self(BTreeMap::new())
+    }
+
+    pub fn singleton(int: Interval<T>) -> Self {
+        Self(BTreeMap::from([(int.1, int)]))
+    }
+
+    pub fn from<const N: usize>(ints: [Interval<T>; N]) -> Self {
+        let ints = ints.iter().map(|&int| (int.1, int));
+        Self(BTreeMap::from_iter(ints))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.0.is_none()
+        self.0.is_empty()
     }
 
-    //pub fn insert(&mut self, new: Interval<T>) {
-    //    match &mut self.0 {
-    //        None => self.0 = Some(Node::leaf(new)),
-    //        Some(root) => {
-    //            let mut stack = vec![(root, new)];
-    //            while let Some((mut ref curr, new)) = stack.pop() {
-    //                let (new_left, new_right) = new.diff(curr.value);
+    pub fn insert(&mut self, new: Interval<T>) {
+        let keys = self.overlap_keys(new);
 
-    //                match (new_left, &mut curr.left) {
-    //                    (Some(new), Some(child)) => stack.push((child.borrow_mut(), new)),
-    //                    (Some(new), None) => curr.set_left(new),
-    //                    _ => (),
-    //                };
-    //            }
-    //        }
-    //    };
-    //}
+        let new = keys.iter().fold(new, |acc, key| {
+            let val = self.0.remove(&key).unwrap();
+            acc.merge(val)
+        });
 
-    pub fn iter(&self) -> Iter<T> {
-        let stack = Vec::new();
-        let curr = self.0.as_ref();
-        Iter { stack, curr }
+        self.insert_raw(new);
+    }
+
+    pub fn remove(&mut self, rem: Interval<T>) {
+        let keys = self.overlap_keys(rem);
+
+        for key in keys {
+            let val = self.0.remove(&key).unwrap();
+            let (left, right) = val.diff(rem);
+
+            if let Some(left) = left {
+                self.insert_raw(left);
+            }
+            if let Some(right) = right {
+                self.insert_raw(right);
+            }
+        }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Interval<T>> {
+        self.0.values()
+    }
+
+    pub fn pop_first(&mut self) -> Option<Interval<T>> {
+        self.0.pop_first().map(|(_, v)| v)
+    }
+
+    pub fn pop_last(&mut self) -> Option<Interval<T>> {
+        self.0.pop_last().map(|(_, v)| v)
+    }
+
+    fn overlap_keys(&mut self, int: Interval<T>) -> Vec<T> {
+        self.0.range(int.0..)
+            .take_while(|(_, val)| val.overlaps(int))
+            .map(|(e, _)| e)
+            .copied()
+            .collect()
+    }
+
+    fn insert_raw(&mut self, new: Interval<T>) {
+        self.0.insert(new.1, new);
     }
 }
 
-struct Node<T: PrimInt> {
-    value: Interval<T>,
-    left: Option<Box<Self>>,
-    right: Option<Box<Self>>,
-}
-
-impl<T> Node<T>
-where T: PrimInt
-{
-    fn leaf(value: Interval<T>) -> Self {
-        Self { value, left: None, right: None }
-    }
-
-    fn branch(value: Interval<T>, left: Option<Self>, right: Option<Self>) -> Self {
-        let left = left.map(Box::new);
-        let right = right.map(Box::new);
-        Self { value, left, right }
-    }
-
-    fn set_left(&mut self, new: Interval<T>) {
-        self.left = Some(Box::new(Self::leaf(new)));
-    }
-
-    fn set_right(&mut self, new: Interval<T>) {
-        self.right = Some(Box::new(Self::leaf(new)));
-    }
-}
+//struct Node<T: PrimInt> {
+//    value: Interval<T>,
+//    left: Option<Box<Self>>,
+//    right: Option<Box<Self>>,
+//}
+//
+//impl<T> Node<T>
+//where T: PrimInt
+//{
+//    fn leaf(value: Interval<T>) -> Self {
+//        Self { value, left: None, right: None }
+//    }
+//
+//    fn branch(value: Interval<T>, left: Option<Self>, right: Option<Self>) -> Self {
+//        let left = left.map(Box::new);
+//        let right = right.map(Box::new);
+//        Self { value, left, right }
+//    }
+//
+//    fn set_left(&mut self, new: Interval<T>) {
+//        self.left = Some(Box::new(Self::leaf(new)));
+//    }
+//
+//    fn set_right(&mut self, new: Interval<T>) {
+//        self.right = Some(Box::new(Self::leaf(new)));
+//    }
+//}
 
 #[cfg(test)]
 mod tests {
@@ -188,16 +228,66 @@ mod tests {
         assert_eq!((Some(Interval(1, 3)), Some(Interval(7, 8))), i2.diff(i1));
     }
 
+    fn interval_tree_insert_overlap(i1: Interval<u32>, i2: Interval<u32>) {
+        let mut tr = IntervalTree::new();
+        tr.insert(i1);
+        tr.insert(i2);
+
+        assert_eq!(Some(i1.merge(i2)), tr.pop_first());
+    }
+
+    #[test]
+    fn interval_tree_insert_overlap_left() {
+        interval_tree_insert_overlap(Interval(2, 4), Interval(0, 3));
+    }
+
+    #[test]
+    fn interval_tree_insert_overlap_right() {
+        interval_tree_insert_overlap(Interval(0, 3), Interval(2, 4));
+    }
+
+    #[test]
+    fn interval_tree_insert_overlap_both() {
+        interval_tree_insert_overlap(Interval(3, 5), Interval(1, 9));
+        interval_tree_insert_overlap(Interval(1, 9), Interval(3, 5));
+    }
+
+    #[test]
+    fn interval_tree_remove_overlap() {
+        let mut tr: IntervalTree<u32> = IntervalTree::from([
+            Interval(0, 3),
+            Interval(5, 7),
+            Interval(9, 12),
+        ]);
+
+        tr.remove(Interval(2, 10));
+        assert_eq!(Some(Interval(0, 2)), tr.pop_first());
+        assert_eq!(Some(Interval(10, 12)), tr.pop_first());
+    }
+
+    #[test]
+    fn interval_tree_insert_disjoint() {
+        let i1 = Interval(7_u32, 10_u32);
+        let i2 = Interval(3_u32, 5_u32);
+
+        let mut tr = IntervalTree::new();
+        tr.insert(i1);
+        tr.insert(i2);
+
+        assert_eq!(Some(i2), tr.pop_first());
+        assert_eq!(Some(i1), tr.pop_first());
+    }
+
     #[test]
     fn interval_tree_iter() {
         let i1 = Interval(0_u32, 3_u32);
         let i2 = Interval(4_u32, 7_u32);
         let i3 = Interval(7_u32, 10_u32);
 
-        let n1 = Node::leaf(i1);
-        let n3 = Node::leaf(i3);
-        let n2 = Node::branch(i2, Some(n1), Some(n3));
-        let tr = IntervalTree(Some(n2));
+        let mut tr = IntervalTree::new();
+        tr.insert(i1);
+        tr.insert(i2);
+        tr.insert(i3);
 
         let is: Vec<Interval<_>> = tr.iter().copied().collect();
         assert_eq!(vec![i1, i2, i3], is);
