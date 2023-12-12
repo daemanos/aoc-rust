@@ -21,16 +21,6 @@ impl Soln for Puzzle {
     }
 }
 
-// D[i, j] = # of arr's that end in # up to i consistent w/ first j groups
-//
-//     ? # ? # ? # ? # ?  #  ?  #  ?  #  ?
-//     1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
-//   +-------------------------------------
-// 1 | 0 1 0 1 0 1 0 1 0  1  0  1  0  1  0
-// 3 | 0 0 0 0 0 1 0 3 0  4  0  5  0  6  0
-// 1 | 0 0 0 0 0 0 0 1 0  4  0  5  0  6  0
-// 6 | 0 0 0 0 0 0 0 0 0  0  0  0  0  0  1
-
 fn record_arrs(record: &Record) -> usize {
     let s = record.springs.len();
     let n = record.group_lens.len();
@@ -51,6 +41,13 @@ fn record_arrs(record: &Record) -> usize {
 
         // we can start at l_tot because fewer characters couldn't work
         for i in i0..=s {
+            if j == n && i+1 < s {
+                if record.springs[i+1..].iter().any(|&s| s == Spring::Dmg) {
+                    // in the final row, there cannot be any # after this point
+                    continue;
+                }
+            }
+
             if record.springs[i-1] != Spring::Ok {
                 // spring at this index is # or ?
                 if i == s || record.springs[i] != Spring::Dmg {
@@ -58,7 +55,7 @@ fn record_arrs(record: &Record) -> usize {
                     if i - l == 0 || record.springs[i-l-1] != Spring::Dmg {
                         // left edge of window is the edge of the grid/?/.
                         let window = &record.springs[i-l..i];
-                        let (ok, _, unk) = classify_window(&window);
+                        let (ok, _, _) = classify_window(&window);
                         if ok == 0 {
                             // no spring in window is .
                             let prev = if i >= l + 1 {
@@ -130,24 +127,6 @@ struct Record {
     group_lens: Vec<usize>,
 }
 
-impl Record {
-    fn groups(&self) -> Vec<Vec<Spring>> {
-        let mut groups = vec![];
-        let mut group = vec![];
-
-        for &spring in &self.springs {
-            if spring == Spring::Unk && !group.is_empty() {
-                groups.push(group.clone());
-                group.clear();
-            } else {
-                group.push(spring);
-            }
-        }
-
-        groups
-    }
-}
-
 impl FromStr for Record {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -200,6 +179,11 @@ mod tests {
         assert_eq!(1, Puzzle::part1("????.#...#... 4,1,1"));
         assert_eq!(4, Puzzle::part1("????.######..#####. 1,6,5"));
         assert_eq!(10, Puzzle::part1("?###???????? 3,2,1"));
+
+        assert_eq!(19, Puzzle::part1("????#?#???????#????? 6,5"));
+
+        assert_eq!(1, Puzzle::part1(".##.?#??.#.?# 2,1,1,1"));
+        assert_eq!(0, Puzzle::part1("###.### 3"));
     }
 
     #[test]
