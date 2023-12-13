@@ -52,12 +52,12 @@ where P: Fn(&Symmetry) -> bool
 struct Symmetry {
     axis: Axis,
     pos: usize,
-    invalid: usize,
+    class: SymmetryClass,
 }
 
 impl Symmetry {
     fn new(points: &PointSet, dim: Dim, pos: usize, axis: Axis) -> Self {
-        let mut invalid = 0;
+        let mut class = SymmetryClass::Valid;
 
         let dim = match axis {
             Axis::Vert => (dim.0, dim.1),
@@ -76,7 +76,10 @@ impl Symmetry {
                     let p1 = mkpoint(off2, poss.0);
                     let p2 = mkpoint(off2, poss.1);
                     if points.contains(&p1) ^ points.contains(&p2) {
-                        invalid += 1;
+                        class = match class.next() {
+                            Some(c) => c,
+                            _ => break,
+                        };
                     }
                 }
             } else {
@@ -84,21 +87,38 @@ impl Symmetry {
             }
         }
 
-        Self { axis, pos, invalid }
+        Self { axis, pos, class }
     }
 
     fn is_valid(&self) -> bool {
-        self.invalid == 0
+        self.class == SymmetryClass::Valid
     }
 
     fn can_fix(&self) -> bool {
-        self.invalid == 1
+        self.class == SymmetryClass::Smudged
     }
 
     fn value(&self) -> usize {
         match self.axis {
             Axis::Vert => self.pos + 1,
             Axis::Horiz => 100 * (self.pos + 1),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+enum SymmetryClass {
+    Valid,
+    Smudged,
+    Invalid,
+}
+
+impl SymmetryClass {
+    fn next(&self) -> Option<Self> {
+        match self {
+            Self::Valid => Some(Self::Smudged),
+            Self::Smudged => Some(Self::Invalid),
+            _ => None,
         }
     }
 }
