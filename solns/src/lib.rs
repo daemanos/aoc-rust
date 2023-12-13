@@ -1,3 +1,5 @@
+#![feature(iter_intersperse)]
+
 use std::fmt::Debug;
 use aoc_client::{PuzzleYear, PuzzleDay, PuzzlePart};
 

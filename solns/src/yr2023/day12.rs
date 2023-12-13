@@ -1,6 +1,7 @@
 use std::cmp;
-use std::str::FromStr;
 use std::fmt;
+use std::iter;
+use std::str::FromStr;
 
 use crate::Soln;
 
@@ -13,15 +14,95 @@ impl Soln for Puzzle {
             .map(|line| line.parse().unwrap())
             .collect();
 
-        records.iter().map(record_arrs).sum()
+        records.iter().map(record_arrs_dp).sum()
     }
 
-    fn part2(_input: &str) -> Self::Answer {
-        todo!();
+    fn part2(input: &str) -> Self::Answer {
+        let mut records: Vec<Record> = input.lines()
+            .map(|line| line.parse().unwrap())
+            .collect();
+
+        records.iter_mut()
+            .map(Record::expand)
+            .map(|record| record_arrs(&record))
+            //.map(|record| record_arrs(record.expand()))
+            .sum()
     }
 }
 
 fn record_arrs(record: &Record) -> usize {
+    let len = record.springs.len();
+
+    let mut arrs = 0;
+    let mut front = vec![(0, record.springs.clone())];
+
+    while let Some((i, mut springs)) = front.pop() {
+        if check(&springs, &record.group_lens) {
+            if i == len {
+                arrs += 1;
+            } else {
+                let i = if springs[i] == Spring::Unk {
+                    i
+                } else {
+                    let j = (i+1..len).find(|&i| springs[i] == Spring::Unk);
+
+                    if let Some(j) = j {
+                        j
+                    } else {
+                        // reached end of record
+                        arrs += 1;
+                        continue;
+                    }
+                };
+
+                let mut springs_dmg = springs.clone();
+                springs_dmg[i] = Spring::Dmg;
+                front.push((i + 1, springs_dmg));
+
+                springs[i] = Spring::Ok;
+                front.push((i + 1, springs));
+            }
+        }
+    }
+
+    println!("{arrs}");
+    arrs
+}
+
+fn check(springs: &[Spring], lens: &[usize]) -> bool {
+    let mut groups = vec![];
+    let mut group = 0;
+    let mut seen_unk = false;
+    for &spring in springs {
+        match spring {
+            Spring::Dmg => group += 1,
+            Spring::Ok => if group > 0 {
+                groups.push(group);
+                group = 0;
+            },
+            Spring::Unk => {
+                seen_unk = true;
+                break;
+            }
+        }
+    }
+    if group > 0 {
+        groups.push(group);
+    }
+
+    let n = groups.len();
+    (seen_unk || n == lens.len()) &&
+        groups.iter().enumerate().zip(lens.iter()).all(|((i, &a), &e)| {
+            if seen_unk && i == n - 1 {
+                // last group can still grow if there are remaining unknowns
+                a <= e
+            } else {
+                a == e
+            }
+        })
+}
+
+fn record_arrs_dp(record: &Record) -> usize {
     let s = record.springs.len();
     let n = record.group_lens.len();
 
@@ -82,11 +163,11 @@ fn record_arrs(record: &Record) -> usize {
                 }
             }
 
-            if i - l > 0 && record.springs[i-l-1] == Spring::Dmg && arrs[j-1][i-l] == 0 {
-                // once we have seen a known # on the left edge, it must be
-                // part of this group
-                break;
-            }
+            //if i - l > 0 && record.springs[i-l-1] == Spring::Dmg && arrs[j-1][i] == 0 {
+            //    // once we have seen a known # on the left edge, it must be
+            //    // part of this group
+            //    break;
+            //}
         }
     }
 
@@ -109,7 +190,9 @@ fn record_arrs(record: &Record) -> usize {
     }
     println!("\n{buf}");
 
-    arrs[n].iter().sum()
+    let res = arrs[n].iter().sum();
+    println!("{res}");
+    res
 }
 
 fn classify_window(window: &[Spring]) -> (usize, usize, usize) {
@@ -125,6 +208,26 @@ fn classify_window(window: &[Spring]) -> (usize, usize, usize) {
 struct Record {
     springs: Vec<Spring>,
     group_lens: Vec<usize>,
+}
+
+impl Record {
+    fn expand(&mut self) -> Self {
+        let springs = iter::repeat(self.springs.clone())
+            .take(5)
+            .intersperse(vec![Spring::Unk])
+            .fold(Vec::new(), |mut acc, mut e| {
+                acc.append(&mut e);
+                acc
+            });
+        let group_lens = iter::repeat(self.group_lens.clone())
+            .take(5)
+            .fold(Vec::new(), |mut acc, mut e| {
+                acc.append(&mut e);
+                acc
+            });
+
+        Self { springs, group_lens }
+    }
 }
 
 impl FromStr for Record {
@@ -184,6 +287,9 @@ mod tests {
 
         assert_eq!(1, Puzzle::part1(".##.?#??.#.?# 2,1,1,1"));
         assert_eq!(0, Puzzle::part1("###.### 3"));
+
+        assert_eq!(20, Puzzle::part1("?#???????.#??? 2,1,2,1"));
+        assert_eq!(6, Puzzle::part1("?.#??.????..?.??? 1,2"));
     }
 
     #[test]
