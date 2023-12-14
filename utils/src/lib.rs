@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 #![feature(pattern)]
+#![feature(const_option)]
 
 pub mod algo;
+pub mod client;
 pub mod convert;
 pub mod grid;
 pub mod intervals;
@@ -9,12 +11,12 @@ pub mod math;
 pub mod point;
 pub mod types;
 
-pub use convert::PeekFrom;
-pub use grid::{Grid, Vec2D};
-pub use intervals::{Interval, IntervalTree};
-pub use point::{Point, Direction};
+pub use convert::*;
+pub use grid::*;
+pub use intervals::*;
+pub use point::*;
 
-pub use utils_derive::FromWords;
+pub use utils_derive::*;
 
 
 pub trait IterUtils<'a, T: 'a> {

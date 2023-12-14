@@ -1,5 +1,6 @@
 use std::ops::{Add, Sub};
 use std::cmp::Ordering;
+use std::fmt;
 
 use num_traits::{NumCast, Float, PrimInt, Signed};
 
@@ -24,6 +25,14 @@ impl<T> Clone for Point<T>
 where T: Clone {
     fn clone(&self) -> Self {
         Self(self.0.clone(), self.1.clone())
+    }
+}
+
+impl<T> fmt::Display for Point<T>
+where T: fmt::Display
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {})", self.0, self.1)
     }
 }
 

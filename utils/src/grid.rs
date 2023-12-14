@@ -1,5 +1,6 @@
-use std::ops::{Index, Deref};
+use std::ops::{Index, IndexMut, Deref};
 use std::str::{Chars, FromStr};
+use std::hash::{Hash, Hasher};
 
 use super::{PeekFrom, Point};
 
@@ -107,7 +108,7 @@ pub enum GridParseError {
     NonRect,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Vec2D<T> {
     cells: Vec<Vec<T>>,
     width: usize,
@@ -183,10 +184,26 @@ impl<T> Vec2D<T> {
     }
 }
 
+impl<T> Hash for Vec2D<T>
+where T: Hash
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for row in self.rows() {
+            row.hash(state);
+        }
+    }
+}
+
 impl<T> Index<IdxPoint> for Vec2D<T> {
     type Output = T;
     fn index(&self, index: IdxPoint) -> &Self::Output {
         &self.cells[index.0 - 1][index.1 - 1]
+    }
+}
+
+impl<T> IndexMut<IdxPoint> for Vec2D<T> {
+    fn index_mut(&mut self, index: IdxPoint) -> &mut Self::Output {
+        &mut self.cells[index.0 - 1][index.1 - 1]
     }
 }
 

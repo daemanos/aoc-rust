@@ -93,7 +93,7 @@ impl TryFrom<char> for Cell {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    //use super::*;
 
     #[test]
     #[ignore]
