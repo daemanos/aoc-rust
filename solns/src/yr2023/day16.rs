@@ -9,21 +9,17 @@ impl Soln for Puzzle {
 
     fn part1(input: &str) -> Self::Answer {
         let grid: Vec2D<Cell> = input.parse().unwrap();
-        num_energized(&grid, Beam { pos: Point(1, 1), dir: Direction::E })
+        num_energized(&grid, Beam { pos: Point(1, 1), dir: E })
     }
 
     fn part2(input: &str) -> Self::Answer {
         let grid: Vec2D<Cell> = input.parse().unwrap();
         let Dim(h, w) = grid.dim();
 
-        let top = (1..w)
-            .map(|col| Beam {pos: Point(1, col), dir: Direction::S});
-        let btm = (1..w)
-            .map(|col| Beam {pos: Point(h, col), dir: Direction::N});
-        let left = (1..h)
-            .map(|row| Beam {pos: Point(row, 1), dir: Direction::E});
-        let right = (1..h)
-            .map(|row| Beam {pos: Point(row, w), dir: Direction::W});
+        let top = (1..w).map(|col| Beam {pos: Point(1, col), dir: S});
+        let btm = (1..w).map(|col| Beam {pos: Point(h, col), dir: N});
+        let left = (1..h).map(|row| Beam {pos: Point(row, 1), dir: E});
+        let right = (1..h).map(|row| Beam {pos: Point(row, w), dir: W});
 
         top.chain(btm).chain(left).chain(right)
             .map(|start| num_energized(&grid, start))
@@ -73,28 +69,24 @@ impl Beam {
             Cell::Empty => Sng(self.cont(self.dir)),
             Cell::Refl(refl) => {
                 let dir = match (self.dir, refl) {
-                    (Direction::S, Right) => Direction::W,
-                    (Direction::W, Right) => Direction::S,
-                    (Direction::N, Right) => Direction::E,
-                    (Direction::E, Right) => Direction::N,
-                    (Direction::S, Left) => Direction::E,
-                    (Direction::E, Left) => Direction::S,
-                    (Direction::N, Left) => Direction::W,
-                    (Direction::W, Left) => Direction::N,
+                    (S, Right) => W,
+                    (W, Right) => S,
+                    (N, Right) => E,
+                    (E, Right) => N,
+                    (S, Left) => E,
+                    (E, Left) => S,
+                    (N, Left) => W,
+                    (W, Left) => N,
                     _ => panic!(),
                 };
                 Sng(self.cont(dir))
             }
             Cell::Split(axis) => {
                 match (self.dir, axis) {
-                    (Direction::S | Direction::N, Vert) =>
-                        Sng(self.cont(self.dir)),
-                    (Direction::E | Direction::W, Vert) =>
-                        Split(self.cont(Direction::N), self.cont(Direction::S)),
-                    (Direction::E | Direction::W, Horiz) =>
-                        Sng(self.cont(self.dir)),
-                    (Direction::S | Direction::N, Horiz) =>
-                        Split(self.cont(Direction::E), self.cont(Direction::W)),
+                    (S | N, Vert) => Sng(self.cont(self.dir)),
+                    (E | W, Vert) => Split(self.cont(N), self.cont(S)),
+                    (E | W, Horiz) => Sng(self.cont(self.dir)),
+                    (S | N, Horiz) => Split(self.cont(E), self.cont(W)),
                     _ => panic!(),
                 }
             }
@@ -137,15 +129,25 @@ impl From<char> for Cell {
 mod tests {
     use super::*;
 
+    static INPUT: &str =
+        ".|...\\....
+|.-.\\.....
+.....|-...
+........|.
+..........
+.........\\
+..../.\\\\..
+.-.-/..|..
+.|....-|.\\
+..//.|....";
+
     #[test]
-    #[ignore]
     fn part1() {
-        //assert_eq!((), Puzzle::part1(""));
+        assert_eq!(46, Puzzle::part1(&INPUT));
     }
 
     #[test]
-    #[ignore]
     fn part2() {
-        //assert_eq!((), Puzzle::part2(""));
+        assert_eq!(51, Puzzle::part2(&INPUT));
     }
 }
