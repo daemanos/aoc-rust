@@ -77,12 +77,12 @@ mod tests {
     #[test]
     #[ignore]
     fn part1() {
-        assert_eq!((), Puzzle::part1(""));
+        //assert_eq!((), Puzzle::part1(""));
     }
 
     #[test]
     #[ignore]
     fn part2() {
-        assert_eq!((), Puzzle::part2(""));
+        //assert_eq!((), Puzzle::part2(""));
     }
 }

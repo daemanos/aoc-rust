@@ -1,15 +1,16 @@
 use crate::Soln;
+use utils::prelude::*;
 
 pub struct Puzzle;
 impl Soln for Puzzle {
     type Answer = ();
 
     fn part1(_input: &str) -> Self::Answer {
-        todo!();
+        unsolved!()
     }
 
     fn part2(_input: &str) -> Self::Answer {
-        todo!();
+        unsolved!()
     }
 }
 

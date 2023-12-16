@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::Soln;
-use utils::{IterUtils, Point};
+use utils::prelude::*;
 
 type Num = i64;
 

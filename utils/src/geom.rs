@@ -1,3 +1,5 @@
+//! Fundamental 2D geometric primitives.
+
 use std::ops::{Add, Sub};
 use std::cmp::Ordering;
 use std::fmt;
@@ -10,7 +12,7 @@ pub static NEIGHBORS: [Direction; 8] = [
     Direction::SW, Direction::S, Direction::SE,
 ];
 
-pub static ORTHO_NEIGHBORS: [Direction; 4] = [
+pub static CARDINAL_DIRS: [Direction; 4] = [
     Direction::N, Direction::E, Direction::S, Direction::W
 ];
 
@@ -72,7 +74,7 @@ where T: PrimInt {
 
     /// Get only the orthogonal neighbors of a point
     pub fn ortho_neighbors(self) -> Neighbors<T> {
-        Neighbors::new(self, &ORTHO_NEIGHBORS)
+        Neighbors::new(self, &CARDINAL_DIRS)
     }
 
     pub fn ortho_to(self, other: Self) -> bool {
@@ -120,17 +122,57 @@ where T: PrimInt {
 
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum Direction {
-    NW,
-    N,
-    NE,
-    W,
-    E,
-    SW,
-    S,
-    SE,
+    NW, N, NE,
+     W,    E,
+    SW, S, SE,
 }
 
 impl Direction {
+    pub fn cardinal(&self) -> bool {
+        match *self {
+            Self::N | Self::W | Self::E | Self::S => true,
+            _ => false,
+        }
+    }
+
+    pub fn unit<T: PrimInt + Signed>(&self) -> Point<T> {
+        let zero = T::zero();
+        let one = T::one();
+        let (y, x) = match *self {
+            Self::NW => (-one, -one),
+            Self::W  => (zero, -one),
+            Self::NE => (-one,  one),
+            Self::N  => (-one, zero),
+            Self::S  => ( one, zero),
+            Self::SW => ( one, -one),
+            Self::E  => (zero,  one),
+            Self::SE => ( one,  one),
+        };
+
+        Point(y, x)
+    }
+
+    pub fn rot90(&self, mag: Rot) -> Self {
+        match (*self, mag) {
+            (Self::N, Rot::Pos) => Self::W,
+            (Self::N, Rot::Neg) => Self::E,
+            (Self::E, Rot::Pos) => Self::N,
+            (Self::E, Rot::Neg) => Self::S,
+            (Self::S, Rot::Pos) => Self::E,
+            (Self::S, Rot::Neg) => Self::W,
+            (Self::W, Rot::Pos) => Self::S,
+            (Self::W, Rot::Neg) => Self::N,
+            (Self::NW, Rot::Pos) => Self::SW,
+            (Self::NW, Rot::Neg) => Self::NE,
+            (Self::NE, Rot::Pos) => Self::NW,
+            (Self::NE, Rot::Neg) => Self::SE,
+            (Self::SE, Rot::Pos) => Self::NE,
+            (Self::SE, Rot::Neg) => Self::SW,
+            (Self::SW, Rot::Pos) => Self::SE,
+            (Self::SW, Rot::Neg) => Self::NW,
+        }
+    }
+
     pub fn opp(&self) -> Self {
         match self {
             Self::NW => Self::SE,
@@ -161,6 +203,18 @@ where T: PrimInt {
             Direction::SE => Self(self.0 + one, self.1 + one),
         }
     }
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+pub enum Rot {
+    Neg,
+    Pos,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+pub enum Axis {
+    Vert,
+    Horiz,
 }
 
 #[cfg(test)]

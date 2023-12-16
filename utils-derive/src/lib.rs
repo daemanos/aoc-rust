@@ -16,13 +16,13 @@ pub fn derive_from_words(input: TokenStream) -> TokenStream {
     output.into()
 }
 
-#[proc_macro_derive(Charty)]
+#[proc_macro_derive(Charnum)]
 pub fn derive_charty(input: TokenStream) -> TokenStream {
     let DeriveInput { ident, data, .. } = parse_macro_input!(input);
 
     let variants = match data {
         Data::Enum(DataEnum { variants, .. }) => variants,
-        _ => panic!("Chars can only be used with enums"),
+        _ => panic!("Charnum can only be used with enums"),
     };
 
     let variants = variants.iter()
@@ -33,15 +33,15 @@ pub fn derive_charty(input: TokenStream) -> TokenStream {
                         Lit::Byte(lit) => {
                             let value = lit.value();
                             quote! {
-                                #value => Ok(#ident),
+                                #value => Ok(Self::#ident),
                             }
                         }
-                        _ => panic!("Chars discriminants must be bytes"),
+                        _ => panic!("Charnum discriminants must be bytes"),
                     }
                     _ => panic!(),
                 }
             } else {
-                panic!("Chars variants must have discriminants");
+                panic!("Charnum variants must have discriminants");
             }
         });
 
@@ -61,6 +61,12 @@ pub fn derive_charty(input: TokenStream) -> TokenStream {
         impl ::std::convert::Into<char> for #ident {
             fn into(self) -> char {
                 self as u8 as char
+            }
+        }
+
+        impl ::std::fmt::Display for #ident {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                write!(f, "{}", *self as u8 as char)
             }
         }
 

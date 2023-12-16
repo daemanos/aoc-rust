@@ -1,10 +1,9 @@
 use std::collections::HashSet;
 
 use crate::Soln;
-use utils::Point;
+use utils::prelude::*;
 
 type PointSet = HashSet<Point<usize>>;
-type Dim = (usize, usize);
 
 pub struct Puzzle;
 impl Soln for Puzzle {
@@ -28,7 +27,7 @@ where P: Fn(&Symmetry) -> bool
 {
     let mut points = HashSet::new();
 
-    let mut dim = (0, 0);
+    let mut dim = Dim(0, 0);
     for (row, line) in input.lines().enumerate() {
         for (col, ch) in line.chars().enumerate() {
             if ch == '#' {
@@ -121,12 +120,6 @@ impl SymmetryClass {
             _ => None,
         }
     }
-}
-
-#[derive(Debug, Copy, Clone)]
-enum Axis {
-    Vert,
-    Horiz,
 }
 
 #[cfg(test)]

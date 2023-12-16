@@ -1,8 +1,8 @@
-use crate::Soln;
-
 use std::cmp;
 use std::collections::{VecDeque, HashSet};
-use utils::{point, grid::{IdxPoint, Dim}, Grid, Vec2D, Direction, Point};
+
+use crate::Soln;
+use utils::prelude::*;
 
 pub struct Puzzle;
 impl Soln for Puzzle {
@@ -14,7 +14,7 @@ impl Soln for Puzzle {
         let mut steps = 0;
         let mut stack = VecDeque::new();
         let mut seen = HashSet::new();
-        for &dir in &point::ORTHO_NEIGHBORS {
+        for &dir in &geom::CARDINAL_DIRS {
             let pos = start + dir;
             if let Some(cell) = grid.get(pos) {
                 if cell.can_connect(dir) {
@@ -51,7 +51,7 @@ impl Soln for Puzzle {
         let mut pos = start;
 
         let mut dir = None;
-        for &d in &point::ORTHO_NEIGHBORS {
+        for &d in &geom::CARDINAL_DIRS {
             let pos = start + d;
             if let Some(cell) = grid.get(pos) {
                 if cell.can_connect(d) {

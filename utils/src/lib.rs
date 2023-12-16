@@ -5,18 +5,27 @@
 pub mod algo;
 pub mod client;
 pub mod convert;
+pub mod geom;
 pub mod grid;
 pub mod intervals;
 pub mod math;
-pub mod point;
 pub mod types;
 
-pub use convert::*;
-pub use grid::*;
-pub use intervals::*;
-pub use point::*;
+pub mod prelude {
+    // Modules
+    pub use super::*;
 
-pub use utils_derive::*;
+    pub use geom::*;
+    pub use grid::{Grid, Vec2D, Dim, IdxPoint};
+    pub use intervals::*;
+
+    // Enum variants
+    pub use Direction::*;
+    pub use Axis::*;
+
+    // Macros
+    pub use utils_derive::*;
+}
 
 
 pub trait IterUtils<'a, T: 'a> {
@@ -80,4 +89,11 @@ impl<'a, T> Iterator for Combos<'a, T> {
             Some(res)
         }
     }
+}
+
+#[macro_export]
+macro_rules! unsolved {
+    () => {
+        panic!("not solved yet");
+    };
 }

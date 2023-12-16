@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::Soln;
-use utils::{Charty, Point, Direction, Grid, Vec2D, Dim};
+use utils::prelude::*;
 
 // note: input is square
 
@@ -114,22 +114,9 @@ impl Platform {
             }
         }
     }
-
-    #[allow(unused)]
-    fn draw(&self) {
-        let Dim(s, _) = self.0.dim();
-        let mut buf = String::new();
-        for row in 1..=s {
-            for col in 1..=s {
-                buf.push(self.0[Point(row, col)].into());
-            }
-            buf.push('\n');
-        }
-        println!("{buf}");
-    }
 }
 
-#[derive(Debug, Hash, Charty)]
+#[derive(Debug, Hash, Charnum)]
 #[repr(u8)]
 enum Cell {
     RoundRock = b'O',

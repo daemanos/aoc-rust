@@ -1,11 +1,13 @@
 use std::ops::{Index, IndexMut, Deref};
 use std::str::{Chars, FromStr};
 use std::hash::{Hash, Hasher};
+use std::fmt;
 
-use super::{PeekFrom, Point};
+use crate::{convert::PeekFrom, geom::Point};
 
 pub type IdxPoint = Point<usize>;
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct Dim(pub usize, pub usize);
 
 /// A two-dimensional grid structure with 1-based indexing.
@@ -30,8 +32,8 @@ pub trait Grid<T> : Index<IdxPoint, Output = T> {
         }
     }
 
-    fn iter(&self) -> Iter<T> where Self: Sized {
-        Iter::new(self)
+    fn iter<W: Walk>(&self) -> Iter<T, W> where Self: Sized {
+        Iter::new(self, W::new(self))
     }
 
     fn ortho_neighbors(&self, point: IdxPoint) -> Vec<&T> {
@@ -47,42 +49,98 @@ pub trait Grid<T> : Index<IdxPoint, Output = T> {
     }
 }
 
-pub struct Iter<'a, T> {
-    curr: IdxPoint,
-    dim: Dim,
-    grid: &'a dyn Grid<T>,
+pub trait Walk {
+    fn new<T>(src: &dyn Grid<T>) -> Self;
+
+    fn start(&self) -> IdxPoint;
+    fn end(&self) -> IdxPoint;
+
+    fn succ(&self, curr: IdxPoint) -> Option<IdxPoint>;
+    fn pred(&self, curr: IdxPoint) -> Option<IdxPoint>;
 }
 
-impl<'a, T> Iter<'a, T> {
-    fn new(grid: &'a dyn Grid<T>) -> Self {
-        let curr = Point(1, 1);
-        let dim = grid.dim();
-
-        Self { curr, dim, grid }
+pub struct RowWalk(Dim);
+impl Walk for RowWalk {
+    fn new<T>(src: &dyn Grid<T>) -> Self {
+        Self(src.dim())
     }
-}
 
-impl<'a, T> Iterator for Iter<'a, T> {
-    type Item = &'a T;
-    fn next(&mut self) -> Option<Self::Item> {
-        let Point(row, col) = self.curr;
-        let Dim(h, w) = self.dim;
+    fn start(&self) -> IdxPoint {
+        Point(1, 0)
+    }
 
-        if row > h && col > w {
+    fn end(&self) -> IdxPoint {
+        let Dim(h, w) = self.0;
+        Point(h, w + 1)
+    }
+
+    fn succ(&self, curr: IdxPoint) -> Option<IdxPoint> {
+        let Point(row, col) = curr;
+        let Dim(h, w) = self.0;
+        if row > h {
             None
+        } else if col == w {
+            Some(Point(row + 1, 1))
         } else {
-            let res = &self.grid[self.curr];
+            Some(Point(row, col + 1))
+        }
+    }
 
-            self.curr = if col == w {
-                Point(row + 1, 1)
-            } else {
-                Point(row, col + 1)
-            };
-
-            Some(res)
+    fn pred(&self, curr: IdxPoint) -> Option<IdxPoint> {
+        let Point(row, col) = curr;
+        let Dim(_, w) = self.0;
+        if row < 1 {
+            None
+        } else if col == 1 {
+            Some(Point(row - 1, w))
+        } else {
+            Some(Point(row, col - 1))
         }
     }
 }
+
+pub struct Iter<'a, T, W: Walk> {
+    front: IdxPoint,
+    back: IdxPoint,
+    walk: W,
+    grid: &'a dyn Grid<T>,
+}
+
+impl<'a, T, W: Walk> Iter<'a, T, W> {
+    fn new(grid: &'a dyn Grid<T>, walk: W) -> Self {
+        let front = walk.start();
+        let back = walk.end();
+        Self { front, back, walk, grid }
+    }
+}
+
+impl<'a, T, W: Walk> Iterator for Iter<'a, T, W> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.walk.succ(self.front).map(|succ| {
+            self.front = succ;
+            &self.grid[succ]
+        })
+    }
+}
+
+impl<'a, T, W: Walk> DoubleEndedIterator for Iter<'a, T, W> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.walk.pred(self.back).map(|pred| {
+            self.back = pred;
+            &self.grid[pred]
+        })
+    }
+}
+
+//impl<T> IntoIterator for dyn Grid<T> {
+//    type Item = T;
+//    type IntoIter = Iter<T>;
+//
+//    fn into_iter(self) -> Self::IntoIter {
+//
+//    }
+//}
 
 pub struct Cell<'a, T> {
     point: IdxPoint,
@@ -124,18 +182,44 @@ impl<T> Vec2D<T> {
         }
     }
 
-    pub fn from_rows<I: Iterator<Item = Vec<T>>>(rows: I) -> Self {
-        rows.fold(Self::new(), |mut acc, row| {
-            acc.push_row(row);
-            acc
-        })
+    pub fn from_rows<I: IntoIterator<Item = Vec<T>>>(rows: I) -> Self {
+        let cells: Vec<Vec<_>> = rows.into_iter().collect();
+        let height = cells.len();
+        let width = cells.iter().map(Vec::len).reduce(|old, new| {
+            if old != new {
+                panic!("non-rectangular argument to from_rows");
+            }
+            new
+        }).unwrap_or(0);
+
+        Self { cells, width, height }
     }
 
-    pub fn from_cols<I: Iterator<Item = Vec<T>>>(cols: I) -> Self {
-        cols.fold(Self::new(), |mut acc, col| {
-            acc.push_col(col);
-            acc
-        })
+    pub fn from_cols<I: IntoIterator<Item = Vec<T>>>(cols: I) -> Self {
+        let mut cols = cols.into_iter();
+        if let Some(col) = cols.next() {
+            let height = col.len();
+            let mut width = 1;
+
+            let mut cells: Vec<Vec<T>> = col.into_iter()
+                .map(|x| vec![x])
+                .collect();
+
+            for col in cols {
+                for (row, x) in col.into_iter().enumerate() {
+                    match cells.get_mut(row) {
+                        Some(row) => row.push(x),
+                        None => panic!("non-rectangular argument to from_cols"),
+                    }
+                }
+
+                width += 1;
+            }
+
+            Self { cells, width, height }
+        } else {
+            Self::new()
+        }
     }
 
     pub fn push_row(&mut self, row: Vec<T>) {
@@ -252,6 +336,21 @@ where T: for<'a> PeekFrom<Chars<'a>>
     }
 }
 
+impl<T> fmt::Display for Vec2D<T>
+where T: fmt::Display
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for row in 1..=self.height {
+            for col in 1..=self.width {
+                write!(f, "{}", &self[Point(row, col)])?;
+            }
+            write!(f, "\n")?;
+        }
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -263,6 +362,19 @@ mod tests {
         fn try_from(ch: char) -> Result<Self, Self::Error> {
             ch.to_digit(10).map(Self).ok_or(())
         }
+    }
+
+    #[test]
+    fn grid_rows() {
+        let rows = vec![
+            vec![1, 2, 3],
+            vec![4, 5, 6],
+            vec![7, 8, 9],
+        ];
+        let grid = Vec2D::from_rows(rows.into_iter());
+
+        let xs: Vec<_> = grid.iter::<RowWalk>().copied().collect();
+        assert_eq!(vec![1, 2, 3, 4, 5, 6, 7, 8, 9], xs);
     }
 
     #[test]

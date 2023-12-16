@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::cmp::Ordering;
 
 use crate::Soln;
-use utils::math;
+use utils::prelude::*;
 
 pub struct Puzzle;
 impl Soln for Puzzle {

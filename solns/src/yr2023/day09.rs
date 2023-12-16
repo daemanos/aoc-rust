@@ -1,7 +1,7 @@
 use std::iter;
 
 use crate::Soln;
-use utils::FromWords;
+use utils::prelude::*;
 
 type Num = i64;
 
