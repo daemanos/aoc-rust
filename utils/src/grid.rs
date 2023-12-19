@@ -3,12 +3,21 @@ use std::str::{Chars, FromStr};
 use std::hash::{Hash, Hasher};
 use std::fmt;
 
-use crate::{convert::PeekFrom, geom::Point};
+use crate::convert::PeekFrom;
+use crate::geom::{Direction, Point};
+
+use Direction::*;
 
 pub type IdxPoint = Point<usize>;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct Dim(pub usize, pub usize);
+
+impl Dim {
+    pub fn in_bounds(&self, point: IdxPoint) -> bool {
+        point.0 > 0 && point.0 <= self.0 && point.1 > 0 && point.1 <= self.1
+    }
+}
 
 /// A two-dimensional grid structure with 1-based indexing.
 ///
@@ -25,15 +34,15 @@ pub trait Grid<T> : Index<IdxPoint, Output = T> {
     }
 
     fn get(&self, point: IdxPoint) -> Option<&T> {
-        if self.in_bounds(point) {
+        if self.dim().in_bounds(point) {
             Some(&self[point])
         } else {
             None
         }
     }
 
-    fn iter<W: Walk>(&self) -> Iter<T, W> where Self: Sized {
-        Iter::new(self, W::new(self))
+    fn iter<W: Walk>(&self, walk: W) -> Iter<T, W> where Self: Sized {
+        Iter::new(self, walk)
     }
 
     fn ortho_neighbors(&self, point: IdxPoint) -> Vec<&T> {
@@ -50,88 +59,137 @@ pub trait Grid<T> : Index<IdxPoint, Output = T> {
 }
 
 pub trait Walk {
-    fn new<T>(src: &dyn Grid<T>) -> Self;
+    //fn new<T>(src: &dyn Grid<T>) -> Self;
 
     fn start(&self) -> IdxPoint;
-    fn end(&self) -> IdxPoint;
+    //fn end(&self) -> IdxPoint;
 
     fn succ(&self, curr: IdxPoint) -> Option<IdxPoint>;
-    fn pred(&self, curr: IdxPoint) -> Option<IdxPoint>;
+    //fn pred(&self, curr: IdxPoint) -> Option<IdxPoint>;
 }
 
-pub struct RowWalk(Dim);
-impl Walk for RowWalk {
-    fn new<T>(src: &dyn Grid<T>) -> Self {
-        Self(src.dim())
-    }
+pub struct DirectedWalk {
+    dim: Dim,
+    heading: (Direction, Direction),
+}
+
+impl Walk for DirectedWalk {
+    //fn new<T>(src: &dyn Grid<T>) -> Self {
+    //    unimplemented!()
+    //}
 
     fn start(&self) -> IdxPoint {
-        Point(1, 0)
-    }
-
-    fn end(&self) -> IdxPoint {
-        let Dim(h, w) = self.0;
-        Point(h, w + 1)
+        let Dim(h, w) = self.dim;
+        match self.heading {
+            (S, E) | (E, S) => Point(1, 1),
+            (S, W) | (W, S) => Point(1, w),
+            (N, E) | (E, N) => Point(h, 1),
+            (N, W) | (W, N) => Point(h, w),
+            _ => panic!("invalid heading: {:?}", self.heading),
+        }
     }
 
     fn succ(&self, curr: IdxPoint) -> Option<IdxPoint> {
-        let Point(row, col) = curr;
-        let Dim(h, w) = self.0;
-        if row > h {
-            None
-        } else if col == w {
-            Some(Point(row + 1, 1))
+        let next = curr + self.heading.0;
+        if self.dim.in_bounds(next) {
+            Some(next)
         } else {
-            Some(Point(row, col + 1))
-        }
-    }
+            let Point(row, col) = curr;
+            let Dim(h, w) = self.dim;
+            let next = match self.heading {
+                (S, E) => Point(1, col + 1),
+                (S, W) => Point(1, col - 1),
+                (N, E) => Point(h, col + 1),
+                (N, W) => Point(h, col - 1),
+                (E, S) => Point(row + 1, 1),
+                (E, N) => Point(row - 1, 1),
+                (W, S) => Point(row + 1, w),
+                (W, N) => Point(row - 1, w),
+                _ => panic!("invalid heading: {:?}", self.heading),
+            };
 
-    fn pred(&self, curr: IdxPoint) -> Option<IdxPoint> {
-        let Point(row, col) = curr;
-        let Dim(_, w) = self.0;
-        if row < 1 {
-            None
-        } else if col == 1 {
-            Some(Point(row - 1, w))
-        } else {
-            Some(Point(row, col - 1))
+            if self.dim.in_bounds(next) {
+                Some(next)
+            } else {
+                None
+            }
         }
     }
 }
 
+//pub struct RowWalk(Dim);
+//impl Walk for RowWalk {
+//    fn new<T>(src: &dyn Grid<T>) -> Self {
+//        Self(src.dim())
+//    }
+//
+//    fn start(&self) -> IdxPoint {
+//        Point(1, 0)
+//    }
+//
+//    fn end(&self) -> IdxPoint {
+//        let Dim(h, w) = self.0;
+//        Point(h, w + 1)
+//    }
+//
+//    fn succ(&self, curr: IdxPoint) -> Option<IdxPoint> {
+//        let Point(row, col) = curr;
+//        let Dim(h, w) = self.0;
+//        if row > h {
+//            None
+//        } else if col == w {
+//            Some(Point(row + 1, 1))
+//        } else {
+//            Some(Point(row, col + 1))
+//        }
+//    }
+//
+//    fn pred(&self, curr: IdxPoint) -> Option<IdxPoint> {
+//        let Point(row, col) = curr;
+//        let Dim(_, w) = self.0;
+//        if row < 1 {
+//            None
+//        } else if col == 1 {
+//            Some(Point(row - 1, w))
+//        } else {
+//            Some(Point(row, col - 1))
+//        }
+//    }
+//}
+
 pub struct Iter<'a, T, W: Walk> {
-    front: IdxPoint,
-    back: IdxPoint,
+    curr: IdxPoint,
+    //back: IdxPoint,
     walk: W,
     grid: &'a dyn Grid<T>,
 }
 
 impl<'a, T, W: Walk> Iter<'a, T, W> {
     fn new(grid: &'a dyn Grid<T>, walk: W) -> Self {
-        let front = walk.start();
-        let back = walk.end();
-        Self { front, back, walk, grid }
+        let curr = walk.start();
+        //let back = walk.end();
+        Self { curr, walk, grid }
     }
 }
 
 impl<'a, T, W: Walk> Iterator for Iter<'a, T, W> {
     type Item = &'a T;
     fn next(&mut self) -> Option<Self::Item> {
-        self.walk.succ(self.front).map(|succ| {
-            self.front = succ;
+        self.walk.succ(self.curr).map(|succ| {
+            self.curr = succ;
             &self.grid[succ]
         })
     }
 }
 
-impl<'a, T, W: Walk> DoubleEndedIterator for Iter<'a, T, W> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        self.walk.pred(self.back).map(|pred| {
-            self.back = pred;
-            &self.grid[pred]
-        })
-    }
-}
+//impl<'a, T, W: Walk> DoubleEndedIterator for Iter<'a, T, W> {
+//    fn next_back(&mut self) -> Option<Self::Item> {
+//        self.walk.pred(self.back).map(|pred| {
+//            self.back = pred;
+//            &self.grid[pred]
+//        })
+//    }
+//}
 
 //impl<T> IntoIterator for dyn Grid<T> {
 //    type Item = T;
@@ -366,15 +424,15 @@ mod tests {
 
     #[test]
     fn grid_rows() {
-        let rows = vec![
-            vec![1, 2, 3],
-            vec![4, 5, 6],
-            vec![7, 8, 9],
-        ];
-        let grid = Vec2D::from_rows(rows.into_iter());
+        //let rows = vec![
+        //    vec![1, 2, 3],
+        //    vec![4, 5, 6],
+        //    vec![7, 8, 9],
+        //];
+        //let grid = Vec2D::from_rows(rows.into_iter());
 
-        let xs: Vec<_> = grid.iter::<RowWalk>().copied().collect();
-        assert_eq!(vec![1, 2, 3, 4, 5, 6, 7, 8, 9], xs);
+        //let xs: Vec<_> = grid.iter::<RowWalk>().copied().collect();
+        //assert_eq!(vec![1, 2, 3, 4, 5, 6, 7, 8, 9], xs);
     }
 
     #[test]

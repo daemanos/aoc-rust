@@ -12,6 +12,11 @@ pub mod math;
 pub mod types;
 
 pub mod prelude {
+    // Stdlib imports
+    pub use std::cmp::{self, Ordering};
+    pub use std::collections::{HashMap, HashSet, BinaryHeap};
+    pub use std::str::FromStr;
+
     // Modules
     pub use super::*;
 

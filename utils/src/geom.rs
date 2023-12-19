@@ -87,6 +87,10 @@ where T: PrimInt {
             _ => false,
         }
     }
+
+    pub fn colinear(&self, other: &Self) -> bool {
+        (self.0 == other.0) ^ (self.1 == other.1)
+    }
 }
 
 impl<T> Point<T>
@@ -101,6 +105,36 @@ where T: PrimInt + Signed {
         let dx = F::from(dx)?;
         let dy = F::from(dy)?;
         Some((dx.powi(2) + dy.powi(2)).sqrt())
+    }
+
+    pub fn signum(&self) -> Self {
+        Self(self.0.signum(), self.1.signum())
+    }
+
+    pub fn direction(&self) -> Option<Direction> {
+        let one = T::one();
+        let zero = T::zero();
+        let signum = self.signum();
+
+        if signum.0 == zero {
+            if signum.1 == one {
+                Some(Direction::E)
+            } else if signum.1 == -one {
+                Some(Direction::W)
+            } else {
+                None
+            }
+        } else if signum.1 == zero {
+            if signum.0 == one {
+                Some(Direction::S)
+            } else if signum.0 == -one {
+                Some(Direction::N)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 }
 
