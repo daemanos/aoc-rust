@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::iter::Peekable;
 use std::str::{Chars, FromStr};
-use core::str::pattern::Pattern;
+use std::str::pattern::{Pattern, ReverseSearcher};
 
 pub trait PeekFrom<I>: Sized
 where I: Iterator
@@ -16,33 +16,51 @@ where T: TryFrom<char> {
     }
 }
 
-/// Splits a string into words separated by whitespace and converts each word
-/// to the given type.
-///
-/// # Examples
-/// ```
-/// # use utils::convert::words;
-/// let v: Vec<u32> = words("1 23 456").collect();
-/// assert_eq!(vec![1, 23, 456], v);
-/// ```
-pub fn words<T>(s: &str) -> impl Iterator<Item = T> + '_
-where T: FromStr,
-{
-    s.split_whitespace().filter_map(|word| word.parse().ok())
+pub trait AocString {
+    /// Splits a string into words separated by whitespace and converts each
+    /// word to the given type.
+    fn words<T: FromStr>(&self) -> impl Iterator<Item = T>;
+
+    /// Splits a string into parts delimited by the given pattern and converts
+    /// each part to the given type.
+    fn split_into<'a, T, P>(&'a self, pat: P) -> impl Iterator<Item = T>
+        where T: FromStr,
+              P: Pattern<'a>;
+
+    fn strip_circumfix<'a, P>(&'a self, pre: P, post: P) -> Option<&'a Self>
+        where P: Pattern<'a>,
+              <P as Pattern<'a>>::Searcher: ReverseSearcher<'a>;
+
+    fn strip_braces(&self) -> Option<&Self> {
+        self.strip_circumfix('{', '}')
+    }
+
+    fn strip_brackets(&self) -> Option<&Self> {
+        self.strip_circumfix('[', ']')
+    }
+
+    fn strip_parens(&self) -> Option<&Self> {
+        self.strip_circumfix('(', ')')
+    }
 }
 
-/// Splits a string into parts delimited by the given pattern and converts each
-/// part to the given type.
-///
-/// # Examples
-/// ```
-/// # use utils::convert::delimited;
-/// let v: Vec<u32> = delimited("1:23:456", ':').collect();
-/// assert_eq!(vec![1, 23, 456], v);
-/// ```
-pub fn delimited<'a, T, P>(s: &'a str, pat: P) -> impl Iterator<Item = T> + 'a
-where T: FromStr,
-      P: Pattern<'a> + 'a
-{
-    s.split(pat).filter_map(|word| word.parse().ok())
+impl AocString for str {
+    fn words<T: FromStr>(&self) -> impl Iterator<Item = T> {
+        self.split_whitespace().filter_map(|word| word.parse().ok())
+    }
+
+    fn split_into<'a, T, P>(&'a self, pat: P) -> impl Iterator<Item = T>
+    where T: FromStr,
+          P: Pattern<'a>,
+    {
+        self.split(pat).filter_map(|word| word.parse().ok())
+    }
+
+    fn strip_circumfix<'a, P>(&'a self, pre: P, post: P) -> Option<&'a str>
+        where P: Pattern<'a>,
+              <P as Pattern<'a>>::Searcher: ReverseSearcher<'a>,
+    {
+        self.strip_prefix(pre)?
+            .strip_suffix(post)
+    }
 }

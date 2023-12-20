@@ -24,7 +24,7 @@ pub mod prelude {
     pub use geom::*;
     pub use grid::{Grid, Vec2D, Dim, IdxPoint};
     pub use intervals::*;
-    pub use convert::PeekFrom;
+    pub use convert::{PeekFrom, AocString};
 
     // Enum variants
     pub use Direction::*;

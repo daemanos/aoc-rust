@@ -280,8 +280,7 @@ impl FromStr for Part {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let ratings: Vec<Rating> = s
-            .strip_prefix('{').unwrap()
-            .strip_suffix('}').unwrap()
+            .strip_braces().unwrap()
             .split(',')
             .map(|word| {
                 let (_, rating) = word.split_once('=').unwrap();

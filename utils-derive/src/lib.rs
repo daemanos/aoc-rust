@@ -9,7 +9,7 @@ pub fn derive_from_words(input: TokenStream) -> TokenStream {
         impl ::std::str::FromStr for #ident {
             type Err = ();
             fn from_str(s: &str) -> Result<Self, Self::Err> {
-                Ok(Self(utils::convert::words(s).collect()))
+                Ok(Self(<str as utils::convert::AocString>::words(s).collect()))
             }
         }
     };
