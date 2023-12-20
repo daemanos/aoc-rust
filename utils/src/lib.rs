@@ -15,6 +15,7 @@ pub mod prelude {
     // Stdlib imports
     pub use std::cmp::{self, Ordering};
     pub use std::collections::{HashMap, HashSet, BinaryHeap};
+    pub use std::fmt;
     pub use std::str::FromStr;
 
     // Modules
@@ -23,6 +24,7 @@ pub mod prelude {
     pub use geom::*;
     pub use grid::{Grid, Vec2D, Dim, IdxPoint};
     pub use intervals::*;
+    pub use convert::PeekFrom;
 
     // Enum variants
     pub use Direction::*;

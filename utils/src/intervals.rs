@@ -1,6 +1,7 @@
 use num_traits::PrimInt;
 use std::cmp;
 use std::collections::BTreeMap;
+use std::fmt;
 use std::iter::Iterator;
 use std::ops::Range;
 
@@ -10,6 +11,14 @@ pub struct Interval<T: PrimInt>(pub T, pub T);
 impl<T> Interval<T>
 where T: PrimInt
 {
+    pub fn is_empty(&self) -> bool {
+        self.1 <= self.0
+    }
+
+    pub fn len(&self) -> T {
+        self.1 - self.0
+    }
+
     pub fn merge(self, other: Self) -> Self {
         let s = cmp::min(self.0, other.0);
         let e = cmp::max(self.1, other.1);
@@ -53,6 +62,13 @@ where T: PrimInt
     }
 }
 
+impl<T> fmt::Display for Interval<T> where T: PrimInt + fmt::Display {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[{},{})", self.0, self.1)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct IntervalTree<T: PrimInt>(BTreeMap<T, Interval<T>>);
 
 //pub struct Iter<'a, T>
@@ -113,6 +129,12 @@ where T: PrimInt
         });
 
         self.insert_raw(new);
+    }
+
+    pub fn append(&mut self, other: &Self) {
+        for (_, &int) in &other.0 {
+            self.insert(int);
+        }
     }
 
     pub fn remove(&mut self, rem: Interval<T>) {
