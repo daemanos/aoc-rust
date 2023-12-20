@@ -17,7 +17,7 @@ pub fn derive_from_words(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_derive(Charnum)]
-pub fn derive_charty(input: TokenStream) -> TokenStream {
+pub fn derive_charnum(input: TokenStream) -> TokenStream {
     let DeriveInput { ident, data, .. } = parse_macro_input!(input);
 
     let variants = match data {
