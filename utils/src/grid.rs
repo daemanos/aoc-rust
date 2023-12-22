@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::cmp;
 use std::ops::{Index, IndexMut, Deref};
 use std::str::{Chars, FromStr};
 use std::hash::{Hash, Hasher};
@@ -297,6 +299,52 @@ impl<T> IndexMut<IdxPoint> for Vec2D<T> {
 }
 
 impl<T> Grid<T> for Vec2D<T> {
+    fn dim(&self) -> Dim {
+        Dim(self.height, self.width)
+    }
+}
+
+struct SparseGrid<T> where T: Default {
+    cells: HashMap<IdxPoint, T>,
+    width: usize,
+    height: usize,
+    default: T,
+}
+
+impl<T> Index<IdxPoint> for SparseGrid<T> where T: Default {
+    type Output = T;
+    fn index(&self, index: IdxPoint) -> &Self::Output {
+        match self.get(index) {
+            Some(cell) => cell,
+            None => &self.default,
+        }
+    }
+}
+
+impl<T> SparseGrid<T> where T: Default {
+    pub fn new() -> Self {
+        let cells = HashMap::new();
+        let default = T::default();
+        Self { cells, default, width: 0, height: 0 }
+    }
+
+    pub fn get(&self, pos: IdxPoint) -> Option<&T> {
+        self.cells.get(&pos)
+    }
+
+    pub fn get_mut(&mut self, pos: IdxPoint) -> Option<&mut T> {
+        self.cells.get_mut(&pos)
+    }
+
+    pub fn insert(&mut self, pos: IdxPoint, what: T) -> Option<T> {
+        self.width = cmp::max(pos.1, self.width);
+        self.height = cmp::max(pos.0, self.height);
+
+        self.cells.insert(pos, what)
+    }
+}
+
+impl<T> Grid<T> for SparseGrid<T> where T: Default {
     fn dim(&self) -> Dim {
         Dim(self.height, self.width)
     }

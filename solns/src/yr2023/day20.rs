@@ -4,7 +4,7 @@ use crate::Soln;
 use utils::prelude::*;
 
 const START_LBL: &'static str = "broadcaster";
-const END_LBL: &'static str = "rx";
+//const END_LBL: &'static str = "rx";
 
 const START_PULSE: (Pulse, &'static str, &'static str) = (Lo, "", START_LBL);
 
@@ -39,21 +39,53 @@ impl Soln for Puzzle {
         lo * hi
     }
 
-    fn part2(input: &str) -> Self::Answer {
-        let ModuleGraph {modules, predss} = parse(input);
+    fn part2(_input: &str) -> Self::Answer {
+        unsolved!()
 
-        let mut min_presses = HashMap::new();
-        min_presses.insert((START_LBL, Lo), Some(1));
-        min_presses.insert((START_LBL, Hi), None);
+        //let graph@ModuleGraph {modules, predss} = parse(input);
 
-        let mut front: VecDeque<_> = modules.get(START_LBL).unwrap().dests
-            .clone().into();
+        //let mut min_presses = HashMap::new();
+        //min_presses.insert((START_LBL, Lo), 1);
 
-        while let Some(label) = front.pop_front() {
-            let module = modules.get(label).unwrap();
-        }
+        //let mut front: VecDeque<_> = modules.get(START_LBL).unwrap().dests
+        //    .clone().into();
 
-        min_presses[&(END_LBL, Lo)].unwrap()
+        //while let Some(label) = front.pop_front() {
+        //    let module = modules.get(label).unwrap();
+        //    let preds = predss.get(label).unwrap();
+
+        //    match module.kind {
+        //        FlipFlop(_, _) => {
+        //            preds.iter()
+
+        //            min_presses_preds(&graph, preds, Lo).map(|min| {
+        //                match target {
+        //                    Lo => 2*min,
+        //                    Hi => min,
+        //                }
+        //            })
+        //        },
+        //        Conjunction(_, _, _) => {
+        //            if target == Lo {
+        //                // all inputs must be high
+        //                preds.iter().fold(Some(1), |min, pred| {
+        //                    min.and_then(|min| {
+        //                        min_presses(&graph, pred, Hi)
+        //                            .map(|min_pred| {
+        //                                math::lcm(min, min_pred)
+        //                            })
+        //                    })
+        //                })
+        //            } else {
+        //                // one input must be low
+        //                min_presses_preds(graph, preds, Lo)
+        //            }
+        //        },
+        //        Broadcast => panic!("impossible"),
+        //    }
+        //}
+
+        //min_presses[&(END_LBL, Lo)].unwrap()
 
         //graph.predss.get(END_LBL).unwrap().iter()
         //    .filter_map(|pred| min_presses(&graph, pred, Lo))
@@ -62,6 +94,7 @@ impl Soln for Puzzle {
     }
 }
 
+#[allow(unused)]
 fn min_presses(
     graph: &ModuleGraph,
     label: &str,

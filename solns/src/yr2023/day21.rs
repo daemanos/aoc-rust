@@ -1,3 +1,5 @@
+use std::mem;
+
 use crate::Soln;
 use utils::prelude::*;
 
@@ -10,8 +12,9 @@ impl Soln for Puzzle {
         reachable_plots(&grid, 64)
     }
 
-    fn part2(_input: &str) -> Self::Answer {
-        unsolved!()
+    fn part2(input: &str) -> Self::Answer {
+        let grid: Vec2D<Cell> = input.parse().unwrap();
+        reachable_plots_inf(&grid, 26501365)
     }
 }
 
@@ -42,36 +45,80 @@ fn reachable_plots(grid: &Vec2D<Cell>, steps: usize) -> usize {
 }
 
 fn reachable_plots_inf(grid: &Vec2D<Cell>, steps: usize) -> usize {
-    let Dim(h, w) = grid.dim();
+    let dim@Dim(h, w) = grid.dim();
 
-    let mut front = HashMap::new();
+    let mut front = HashSet::new();
     for row in 1..h {
         for col in 1..w {
             if grid[Point(row, col)] == Start {
-                front.insert(Point(row, col), 1);
+                front.insert(Point(row as isize, col as isize));
                 break;
             }
         }
     }
 
-    //let mut seen = HashMap::new();
-    //for _ in 0..steps {
-    //    let front2 = front.drain()
-    //        .flat_map(|(pt, mult)| {
-    //            pt.ortho_neighbors()
-    //                .filter_map(|pt| {
-    //                    if grid.in_bounds(pt) {
-    //                        if grid[pt] != Rock {
-    //                            Some()
-    //                        }
-    //                    }
-    //                })
-    //        }).collect();
-    //    front = front2;
-    //}
+    let mut seen = front.clone();
+    let mut front2 = HashSet::new();
+    let mut reachable = 0;
+    //let mut reachable = HashSet::new();
+    for s in 0..=steps {
+        for pt in front.drain() {
+            if (steps - s) % 2 == 0 {
+                //println!("{pt} in {s} steps -> reachable");
+                reachable += 1;
+                //dbg!(reachable.insert(dbg!(pt)));
+            } else {
+                //println!("{pt} in {s} steps -> unreachable");
+            }
 
-    front.values().sum()
+            for pt in pt.ortho_neighbors() {
+                if !seen.contains(&pt) {
+                    seen.insert(pt);
+                    let pt_inf = point_inf(pt, dim);
+                    //println!("moving to {}", pt_inf);
+                    if grid[pt_inf] != Rock {
+                        front2.insert(pt);
+                    }
+                }
+            }
+        }
+
+        mem::swap(&mut front, &mut front2);
+    }
+
+    //let mut buf = String::new();
+    //for row in 1..=h {
+    //    for col in 1..=w {
+    //        let pt = Point(row, col);
+    //        if reachable.contains(&pt) {
+    //            buf.push('O');
+    //        } else {
+    //            buf.push(grid[pt].into());
+    //        }
+    //    }
+    //    buf.push('\n');
+    //}
+    //println!("{buf}");
+
+    reachable
 }
+
+fn point_inf(pt: Point<isize>, dim: Dim) -> IdxPoint {
+    let h = dim.0 as isize;
+    let w = dim.1 as isize;
+
+    let row = match pt.0.rem_euclid(h) {
+        0 => h,
+        r => r,
+    };
+    let col = match pt.1.rem_euclid(w) {
+        0 => w,
+        c => c,
+    };
+
+    Point(row as usize, col as usize)
+}
+
 
 #[derive(Debug, Charnum)]
 #[repr(u8)]
@@ -86,25 +133,32 @@ use Cell::*;
 mod tests {
     use super::*;
 
+    static INPUT: &str =
+        "...........
+         .....###.#.
+         .###.##..#.
+         ..#.#...#..
+         ....#.#....
+         .##..S####.
+         .##..#...#.
+         .......##..
+         .##.#.####.
+         .##..##.##.
+         ...........";
+
+
     #[test]
     fn part1() {
-        let input = "...........
-                     .....###.#.
-                     .###.##..#.
-                     ..#.#...#..
-                     ....#.#....
-                     .##..S####.
-                     .##..#...#.
-                     .......##..
-                     .##.#.####.
-                     .##..##.##.
-                     ...........";
-        let grid: Vec2D<Cell> = input.parse().unwrap();
+        let grid: Vec2D<Cell> = INPUT.parse().unwrap();
         assert_eq!(4, reachable_plots(&grid, 2));
     }
 
     #[test]
     fn part2() {
-        //assert_eq!((), Puzzle::part2(""));
+        let grid: Vec2D<Cell> = INPUT.parse().unwrap();
+        assert_eq!(16, reachable_plots_inf(&grid, 6));
+        assert_eq!(50, reachable_plots_inf(&grid, 10));
+        assert_eq!(1594, reachable_plots_inf(&grid, 50));
+        assert_eq!(6536, reachable_plots_inf(&grid, 100));
     }
 }
