@@ -68,7 +68,9 @@ impl Brick {
                     p.on_axis(Z, q) &&
                         cmp::max(p[Z], q[Z]) <= cmp::min(p[Z] + s, q[Z] + t)
                 } else if a == Z {
-                    
+                    todo!()
+                } else {
+                    todo!()
                 }
             }
         }
